@@ -80,7 +80,7 @@ static OS_STK TaskStk[APP_CFG_N_TASKS][APP_CFG_TASK_STK_SIZE];
 volatile INT8U buttonState;
 bool show_cpu_usage=true;
 
-// USARTC0 Receiver buffer
+
 #define USARTC0_RX_BUFFER_SIZE_BYTES 512
 char rx_buffer_usartc0[USARTC0_RX_BUFFER_SIZE_BYTES];
 unsigned int rx_wr_index_usartc0=0,rx_rd_index_usartc0=0;
