@@ -11,8 +11,8 @@
 * By   : Jean J. Labrosse
 *********************************************************************************************************
 */
-
 #include "includes.h"
+
 /*
 *********************************************************************************************************
 *                                               PROTOTYPES
@@ -21,7 +21,14 @@
 
 static  void    BSP_TickInit(void);
 static  void    LED_Init(void);
+static  void    LCD_Init(void);
 static  void    PB_Init(void);
+static  void    UART_Init(void);
+static  void    DC_Motor_Init(void);
+static  void    IR_Sensor_ISR_Enable(void);
+static  void    IR_Sensor_ISR_Disable(void);
+
+
 
 /*
 *********************************************************************************************************
@@ -36,10 +43,13 @@ static  void    PB_Init(void);
 
 void  BSP_Init (void)
 {
-    LED_Init();
-    PB_Init();
-
-    BSP_TickInit();
+     LED_Init();
+     DC_Motor_Init();
+     LCD_Init();
+     PB_Init();
+     UART_Init();
+     BSP_TickInit();
+     IR_Sensor_ISR_Enable();
 }
 
 
@@ -66,8 +76,11 @@ static  void  BSP_TickInit (void)
 
 ISR(TIMER0_COMPA_vect)          // timer compare interrupt service routine
 {
+     // breakpoint();
+     // ISR_INT5_INTERRUPT_Counter++;
 	BSP_TickISR_Handler();
 }
+
 /*
 *********************************************************************************************************
 *                                         TIMER #0 IRQ HANDLER
@@ -83,7 +96,14 @@ ISR(TIMER0_COMPA_vect)          // timer compare interrupt service routine
 
 void  BSP_TickISR_Handler (void)
 {
-    OSTimeTick();                       /* If the interrupt is from the tick source, call OSTimeTick() */
+
+//     cli();
+//     OSIntNesting++;                                      /* Tell uC/OS-II that we are starting an ISR             */
+//     sei();
+
+    OSTimeTick();                                           /* Call uC/OS-II's OSTimeTick()                          */
+
+//     OSIntExit();                                            /* Tell uC/OS-II that we are leaving the ISR             */
 }
 
 
@@ -100,9 +120,62 @@ void  BSP_TickISR_Handler (void)
 
 static  void  LED_Init (void)
 {
-    DDRJ  = 0xFF;                                 /* All PORTD pins are outputs                        */
+     DDRJ  = 0xFF;  
+//     PORTJ=!(1<<LED_PIN0);
+//     PORTJ|=(1<<LED_PIN1);                               /* All PORTD pins are outputs                        */
     //PORTD = 0xFF;
     //LED_Off(0);                                   /* Turn ON all the LEDs                              */
+}
+static  void  DC_Motor_Init (void)
+{ 
+     DDRB  = 0xFF;
+                       
+}
+
+static  void  IR_Sensor_ISR_Enable (void)
+{ 
+     // DDRF  = 0x00;
+     // PORTF = 0x00;
+     // DDRE &= ~(1 << IR_TSOP_SESOR);
+     // PORTE = (1 << IR_TSOP_SESOR);
+     // EICRB = (1<<ISC50)|(1<<ISC50);
+     EICRB = (1<<ISC50);
+     EIMSK = (1<<INT5);                      
+}
+static  void  IR_Sensor_ISR_Disable (void)
+{ 
+     EICRB &= ~(1 << ISC50);
+     EIMSK &= ~(1<<INT5);                   
+}
+/*
+*********************************************************************************************************
+*
+* Description : This function is used to initialize the UART.
+*               
+* Arguments   : none
+*********************************************************************************************************
+*/
+
+static  void  UART_Init (void)
+{
+     UBRR0 = UBRR_VAL ;  
+     UCSR0B |= 1 << TXEN0;  
+     // Frame format: Asynchronous 8N1 
+     UCSR0C = ( 1 << UCSZ01 ) | ( 1 << UCSZ00 );       
+}
+/*
+* Description : This function should be called by your application code before you make use of any of the
+*               functions found in this module. This function shall initialize the LCD 1602 Module.
+*               
+* Arguments   : none
+*********************************************************************************************************
+*/
+static  void  LCD_Init (void)
+{
+    DDRF  |= (1<<PF4)|(1<<PF5)|(1<<PF6)|(1<<PF7);                                 /* All PORTD pins are outputs   */
+    DDRH  |= (1<<PH0)|(1<<PH1);                      
+  
+
 }
 
 /*

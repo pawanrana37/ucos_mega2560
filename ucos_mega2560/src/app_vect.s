@@ -156,12 +156,12 @@
                                                    ; Vector #   Address       Interrupt Definition
                                                    ; --------   -----------   ------------------------------------------
                                                    ;      0       0x0000       Reset
-__vector_1:     JMP     __unhandled_interrupt      ;      1       0x0004       External Oscillator Failure (NMI)
+; __vector_1:     JMP     __unhandled_interrupt      ;      1       0x0004       External Oscillator Failure (NMI)
 __vector_2:     JMP     __unhandled_interrupt      ;      2       0x0008       Port C External Interrupt 0
 __vector_3:     JMP     __unhandled_interrupt      ;      3       0x000C       Port C External Interrupt 1
 __vector_4:     JMP     __unhandled_interrupt      ;      4       0x0010       Port R External Interrupt 0
 __vector_5:     JMP     __unhandled_interrupt      ;      5       0x0014       Port R External Interrupt 1
-__vector_6:     JMP     __unhandled_interrupt      ;      6       0x0018       DMA CH0
+; __vector_6:     JMP     __unhandled_interrupt      ;      6       0x0018       DMA CH0
 __vector_7:     JMP     __unhandled_interrupt      ;      7       0x001C       DMA CH1
 __vector_8:     JMP     __unhandled_interrupt      ;      8       0x0020       DMA CH2
 __vector_9:     JMP     __unhandled_interrupt      ;      9       0x0024       DMA CH3
@@ -181,7 +181,7 @@ __vector_22:    JMP     __unhandled_interrupt      ;     22       0x0058       T
 __vector_23:    JMP     __unhandled_interrupt      ;     23       0x005C       Timer C1 Compare or Capture B
 __vector_24:    JMP     __unhandled_interrupt      ;     24       0x0060       SPI C
 ;__vector_25:    JMP     usartc0_rx_isr             ;     25       0x0064       USART C0 Rx Complete
-__vector_26:    JMP     __unhandled_interrupt      ;     26       0x0068       USART C0 Data Register Empty
+; __vector_26:    JMP     __unhandled_interrupt      ;     26       0x0068       USART C0 Data Register Empty
 __vector_27:    JMP     __unhandled_interrupt      ;     27       0x006C       USART C0 Tx Complete
 __vector_28:    JMP     __unhandled_interrupt      ;     28       0x0070       USART C1 Rx Complete
 __vector_29:    JMP     __unhandled_interrupt      ;     29       0x0074       USART C1 Data Register Empty
@@ -198,8 +198,8 @@ __vector_39:    JMP     __unhandled_interrupt      ;     39       0x0098       A
 __vector_40:    JMP     __unhandled_interrupt      ;     40       0x009C       ADC B CH1
 __vector_41:    JMP     __unhandled_interrupt      ;     41       0x00A0       ADC B CH2
 __vector_42:    JMP     __unhandled_interrupt      ;     42       0x00A4       ADC B CH3
-__vector_43:    JMP     __unhandled_interrupt      ;     43       0x00A8       Port E External Interrupt 0
-__vector_44:    JMP     __unhandled_interrupt      ;     44       0x00AC       Port E External Interrupt 1
+; __vector_43:    JMP     __unhandled_interrupt      ;     43       0x00A8       Port E External Interrupt 0
+; __vector_44:    JMP     __unhandled_interrupt      ;     44       0x00AC       Port E External Interrupt 1
 __vector_45:    JMP     __unhandled_interrupt      ;     45       0x00B0       TWI E Slave Interrupt
 __vector_46:    JMP     __unhandled_interrupt      ;     46       0x00B4       TWI E Master Interrupt
 __vector_47:    JMP     __unhandled_interrupt      ;     47       0x00B8       Timer  E0  Overflow
