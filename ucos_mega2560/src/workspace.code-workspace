@@ -1,0 +1,14 @@
+{
+	"folders": [
+		{
+			"name": "ucos_mega2560",
+			"path": ".."
+		}
+	],
+	"settings": {
+		"files.associations": {
+			"*.can": "c",
+			"includes.h": "c"
+		}
+	}
+}

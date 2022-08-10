@@ -68,6 +68,9 @@
 */
 
 #include "includes.h"
+#include <avr_debugger.h>
+#include "avr8-stub.h"
+
 
 /*
 *********************************************************************************************************
@@ -80,7 +83,7 @@ static OS_STK TaskStk[APP_CFG_N_TASKS][APP_CFG_TASK_STK_SIZE];
 volatile INT8U buttonState;
 bool show_cpu_usage=true;
 
-
+// USARTC0 Receiver buffer
 #define USARTC0_RX_BUFFER_SIZE_BYTES 512
 char rx_buffer_usartc0[USARTC0_RX_BUFFER_SIZE_BYTES];
 unsigned int rx_wr_index_usartc0=0,rx_rd_index_usartc0=0;
@@ -94,10 +97,68 @@ unsigned int rx_wr_index_usartf0=0,rx_rd_index_usartf0=0;
 volatile unsigned int rx_counter_usartf0=0;
 volatile bool rx_buffer_overflow_usartf0=false;
 
+volatile char out[32];
+volatile unsigned int outp;
+unsigned char ir_code=0;
+volatile unsigned char tx_send;
+static volatile INT32U ir_count;
+static volatile INT32U ir_prev_count;
+static float total_time_interval=0.00f;
+static volatile INT32U current_timer_tick_count=0;
+static volatile INT32U previous_timer_tick_count=0;
+static volatile unsigned char current_interrupt_count=0;
+static volatile unsigned char previous_interrupt_count=0;
+// typedef struct ir_data_struct {
+int first_start_pulse;
+int seccound_verification_puls;
+static volatile unsigned int previous_tick_count=0;
+static volatile unsigned int current_tick_count=0;
+static volatile unsigned int current_tick_count_4ms=0;
+static volatile unsigned int alive_counter=0;
+// static volatile unsigned int IR_Startup_Sequence_9ms=0;
+// static volatile unsigned int previous_tick_count;
+// static volatile unsigned int current_tick_count;
+// static volatile INT32U IR_Startup_Sequence;
+static volatile INT32U previous_tick_temp_count;
+static volatile INT32U IR_Startup_Sequence_4_5ms;
+static volatile INT32U IR_Data_Sequence;
+static volatile INT32U IR_Data_Counter;
+static volatile INT32U IR_Startup_Sequence_Flag;
+static volatile unsigned int IR_Command_Sequence=0; 
+static volatile unsigned int IR_Address_Sequence=0;
+static volatile unsigned int IR_Startup_Sequence=0;  
+static volatile unsigned int IR_Start_Frame_Init=0;
+static volatile unsigned int IR_CommandData_Time_Counter=0; 
+static volatile unsigned int IR_RepeatCode_Sequence=0;
+unsigned volatile int ir_received_data=0b0000000;
+unsigned volatile int ir_raw_data_0 = 0b0000000;
+unsigned volatile int ir_raw_data_1 = 0b0000000;
+unsigned volatile int ir_raw_data_2 = 0b0000000;
+// } ir_strucet_t; // structure to hold IR data 
+// ir_strucet_t ir_str_t; // structure variable
+void protocol_check();
+void IR_Retrive_RepeatCode(void);
+void IR_Calculate_Frame(void);
+void IR_Retrive_CommandData(void);
+void IR_Retrive_AddressData(void);
+void IR_Retrive_StartFrame(void);
+void IR_ISR_Init(void);
+int read_data();
+// static unsigned int alive_counter;
+int ir_result(char debug_info);
+// static void UART_Send_IR(unsigned int uart_data );
+static volatile INT32U count=0;
 // Semaphore declarations
 OS_EVENT *usartc0_rx;
 OS_EVENT *usartf0_rx;
 OS_EVENT *pushbutton_event;
+OS_EVENT *IR_Sensor;
+OS_Q IRS_Q;
+OS_EVENT *msgbox; 
+OS_EVENT *msgbox1; 
+OS_EVENT *msgbox2;
+extern unsigned int ISR_INT5_INTERRUPT_FLAG;
+
 
 /*
 *********************************************************************************************************
@@ -112,13 +173,16 @@ void SystemClocksInit(void);
 void USARTC0Init(void);
 void USARTF0Init(void);
 void PushButtonTimerInit(void);
+void Lcd_DataWrite(unsigned char dat);
+void Lcd_CmdWrite(unsigned char cmd);
+// static void  UART_Send_IR(unsigned char data);
+// static unsigned char  IR_Read_Code(void);
 //void tc0_disable(TC0_t *ptc);
 //void tc1_disable(TC1_t *ptc);
 void ClockTickStart(void);
-
 #if PRINT_TO_USART == C0
-//char getchar_usartc0(void);
-//int usartc0_putchar(char c, FILE *stream);
+char getchar_usartc0(void);
+int usartc0_putchar(char c, FILE *stream);
 #elif PRINT_TO_USART == F0
 char getchar_usartf0(void);
 int usartf0_putchar(char c, FILE *stream);
@@ -139,13 +203,35 @@ static FILE mystdout = FDEV_SETUP_STREAM(usartf0_putchar, NULL, _FDEV_SETUP_WRIT
 
 int main(void)
 {
+
+    // breakpoint();
     // Redefine standard output stream
     //stdout=&mystdout;
     // Initialize AVR
     BSP_Init();
-
+    debug_init();
     // Initialize uC/OS-II
     OSInit();
+    /*Create Message Queue*/
+    // IR_Sensor = OSQCreate((OS_Q *)&IRS_Q,10);
+     msgbox = OSMboxCreate((void *)0);
+    if(msgbox == ((void *)0))
+    {
+        /* Failed to create message box */
+        /* Return error to caller? */
+    } 
+         msgbox1 = OSMboxCreate((void *)0);
+    if(msgbox1 == ((void *)0))
+    {
+        /* Failed to create message box */
+        /* Return error to caller? */
+    } 
+         msgbox2 = OSMboxCreate((void *)0);
+    if(msgbox2 == ((void *)0))
+    {
+        /* Failed to create message box */
+        /* Return error to caller? */
+    } 
     // Create the start task
     OSTaskCreateExt((void (*)(void *)) TaskStart,
                     (void           *) 0,
@@ -161,7 +247,9 @@ int main(void)
     //usartf0_rx=OSSemCreate(0);
     //pushbutton_event=OSSemCreate(0);
     // Start multi-tasking
+
     OSStart();
+
     return 0;
 }
 
@@ -176,10 +264,10 @@ static void TaskStart(void *p_arg)
 {
     // Begin clock tick
     //ClockTickStart();
+
     #if (OS_TASK_STAT_EN > 0)
     OSStatInit();
     #endif
-    PORTJ^=(1<<LED_PIN0);
     // Create tasks
     TaskStartCreateTasks();
     // Delete start task
@@ -214,27 +302,242 @@ static void Task1(void *p_arg)
     }
 } // Task1()
 #endif
-// Task2: PRIORITY=4
+// Task1: PRIORITY=3
 static void Task1(void *p_arg)
 {
-    // Task body (always written as an infinite loop) 
-    while(1)
+    while (1)
     {
-    	PORTJ^=(1<<LED_PIN0);
-        OSTimeDlyHMSM(0,0,0,1000);
-    }
-} // Task2()
+        // alive_counter++;
+        // Task body (always written as an infinite loop) 
+        
+        // breakpoint();
+        PORTJ^=(1<<LED_PIN0);
 
-// Task3: PRIORITY=5
+        OSTimeDlyHMSM(0,0,0,500);
+    }
+    
+} // Task1()
+
+// Task2: PRIORITY=4
 static void Task2(void *p_arg)
 {
     // Task body (always written as an infinite loop) 
+    while (1)
+    {
+        PORTJ^=(1<<LED_PIN1);
+        OSTimeDlyHMSM(0,0,0,500);
+        // breakpoint();
+    }   
+} // Task2()
+
+// Task3: PRIORITY=5
+// static void Task3(void *p_arg)
+// {
+
+//     unsigned char i,a[]={"Anuyukti Kumari"};
+//     Lcd_CmdWrite(0x02);        // Initialize Lcd in 4-bit mode
+//     Lcd_CmdWrite(0x28);        // enable 5x7 mode for chars 
+//     Lcd_CmdWrite(0x01);        // Clear Display
+//     Lcd_CmdWrite(0x0C);        // Display ON, Cursor OFF
+//     Lcd_CmdWrite(0x06);          /*increment cursor (shift cursor to right)*/	
+//     Lcd_CmdWrite(0x80);        // Move the cursor to beginning of first line    */  
+//     // Task body (always written as an infinite loop) 
+//     while(1)
+//     {
+
+//         Lcd_DataWrite('H');
+//         Lcd_DataWrite('e');
+//         Lcd_DataWrite('l');
+//         Lcd_DataWrite('l');
+//         Lcd_DataWrite('o');
+//         Lcd_DataWrite(' ');
+//         // Lcd_DataWrite('w');
+//         // Lcd_DataWrite('o');
+//         // Lcd_DataWrite('r');
+//         // Lcd_DataWrite('l');
+//         // Lcd_DataWrite('d');
+
+//         Lcd_CmdWrite(0xc0);        //Go to Next line and display Good Morning
+//         for(i=0;a[i]!=0;i++)
+//         {
+//             Lcd_DataWrite(a[i]);
+//         }
+//     }  
+        
+// } // Task3()
+// Task4: PRIORITY=6
+static void Task_DC_Motor(void *p_arg)
+{
+    // sei(); // enable interrupts
+    // Task body (always written as an infinite loop) 
     while(1)
     {
-       PORTJ^=(1<<LED_PIN1);
+        PORTB|=(1<<DC_MOTOR_IN1);
+        PORTB&=~(1<<DC_MOTOR_IN2);
+        OSTimeDlyHMSM(0,0,5,0);
+
+        PORTB|=(1<<DC_MOTOR_IN2);
+        PORTB&=~(1<<DC_MOTOR_IN1);
+        OSTimeDlyHMSM(0,0,5,0);
+    }   
+   
+} // Task4()
+// Task4: PRIORITY=6
+// static void IR_Receiver(void *p_arg)
+// {
+//     unsigned int uart_data;
+//     INT8U err;
+//     // IR_Startup_Sequence_9ms = 0;
+//     // previous_tick_count = 0;
+//     // current_tick_count = 0;
+//     // alive_counter = 0;
+//     while(1)
+//     {
+
+//         //ir_result(1);
+  
+//         OSTimeDlyHMSM(0,0,2,0);
+//     }
+
+// } 
+// /**Function to Get the IR Command */
+// void IR_Retrive_RepeatCode(void)
+// {
+//     if(IR_RepeatCode_Sequence == 0 && IR_Command_Sequence == 1 && IR_Address_Sequence == 1 && IR_Startup_Sequence == 1 && IR_Start_Frame_Init == 1)
+//     {
+//         current_tick_count = OSTimeGet();
+//         if(((current_tick_count - previous_tick_count) >= 121))
+//         {
+
+//             IR_Start_Frame_Init = 0;
+//             breakpoint();
+//             ir_raw_data_0 = 0;
+//         }
+
+//     }
+// }
+
+/**Function to Get the IR Command */
+void IR_Retrive_CommandData(void)
+{
+    if(IR_Command_Sequence == 0 && IR_Address_Sequence == 1 && IR_Startup_Sequence == 1 && IR_Start_Frame_Init == 1)
+    {
+        current_tick_count = OSTimeGet();
+        if(((current_tick_count - previous_tick_count) >= (42 + IR_CommandData_Time_Counter))&& ((current_tick_count - previous_tick_count) <= 68))
+        {
+            if (IR_TSOP_SENSOR_PIN_STATUS == 0) {
+                ir_raw_data_0 &= ~(1 << (8 - (IR_CommandData_Time_Counter/3))); //Clear bit (7-b)
+            } else {
+                ir_raw_data_0 |= (1 << (8 - (IR_CommandData_Time_Counter/3))); //Set bit (7-b)
+            } 
+            
+            IR_CommandData_Time_Counter = IR_CommandData_Time_Counter +3;
+
+        }
+        else
+        {
+                /**Do Nothing*/
+        }
+        if((current_tick_count - previous_tick_count) >=69)
+        {
+            OSMboxPost(msgbox, ir_raw_data_0);
+            IR_Command_Sequence = 1;
+            IR_CommandData_Time_Counter = 3;
+            previous_tick_count = OSTimeGet();
+            IR_Start_Frame_Init = 0;
+        }
+
+    }
+
+}
+
+/**Function to Get the IR Command */
+void IR_Retrive_AddressData(void)
+{
+    if(IR_Address_Sequence == 0 && IR_Startup_Sequence == 1 && IR_Start_Frame_Init == 1)
+    {
+    
+        current_tick_count = OSTimeGet();
+        if((current_tick_count - previous_tick_count) > 40)
+        {
+            IR_Address_Sequence = 1;
+            IR_Command_Sequence = 0;
+
+        }
+    }
+}
+    
+
+/**Function to Get the IR Startup Frame */
+void IR_Retrive_StartFrame(void)
+{
+    if(IR_Startup_Sequence == 0 && IR_Start_Frame_Init == 1)
+    {
+        current_tick_count = OSTimeGet();
+        if((current_tick_count - previous_tick_count) > 14)
+        {
+            IR_Startup_Sequence = 1;
+            IR_Address_Sequence = 0;
+
+        }
+    }
+
+}
+/**Function to Get the INIT */
+void IR_ISR_Init(void)
+{
+    if(IR_Start_Frame_Init == 0)
+    {
+        previous_tick_count = OSTimeGet();
+        IR_Start_Frame_Init = 1;
+        IR_Startup_Sequence = 0;
+    }
+
+}
+
+ISR(INT5_vect)
+{
+    IR_ISR_Init();
+    IR_Retrive_StartFrame();
+    IR_Retrive_AddressData();
+    IR_Retrive_CommandData();
+    // IR_Retrive_RepeatCode();
+}
+
+
+static void UART_Send_IR(int *p_arg)
+{
+    INT8U err;
+    while(1)
+    {
+        // ir_received_data = (int)OSQPend(&IR_Sensor,10,&perr);
+        // OSQPost
+        ir_received_data = OSMboxPend(msgbox, 0, &err);
+
+        switch (err) 
+        { 
+            case OS_ERR_NONE:
+            case OS_ERR_TIMEOUT:
+            case OS_ERR_PEND_ABORT:
+            break;
+            default:
+            break;
+        }
+
+        if (err != OS_ERR_NONE) 
+        { 
+        /* Try again? */
+        } 
+
+        while(!(UCSR0A & (1<<UDRE0)));
+ 
+        UDR0 = ir_received_data;
+        // ir_received_data = 0;
+        breakpoint();
         OSTimeDlyHMSM(0,0,0,1000);
-    }       
-} // Task3()
+    }
+} 
+
 #if 0
 // Task4: PRIORITY=6
 static void Task4(void *p_arg)
@@ -324,9 +627,19 @@ void TaskStartCreateTasks(void)
                     (INT32U          ) APP_CFG_TASK_STK_SIZE,
                     (void           *) 0,
                     (INT16U          )(OS_TASK_OPT_STK_CHK | OS_TASK_OPT_STK_CLR));
-#if 0
+
     // Task3: PRIORITY=5
-    OSTaskCreateExt((void (*)(void *)) Task3,
+    // OSTaskCreateExt((void (*)(void *)) Task3,
+    //                 (void           *) 0,
+    //                 (OS_STK         *)&TaskStk[2][APP_CFG_TASK_STK_SIZE - 1],
+    //                 (INT8U           ) 5,
+    //                 (INT16U          ) 5,
+    //                 (OS_STK         *)&TaskStk[2][0],
+    //                 (INT32U          ) APP_CFG_TASK_STK_SIZE,
+    //                 (void           *) 0,
+    //                 (INT16U          )(OS_TASK_OPT_STK_CHK | OS_TASK_OPT_STK_CLR));
+    // Task3: PRIORITY=6
+    OSTaskCreateExt((void (*)(void *)) Task_DC_Motor,
                     (void           *) 0,
                     (OS_STK         *)&TaskStk[2][APP_CFG_TASK_STK_SIZE - 1],
                     (INT8U           ) 5,
@@ -335,7 +648,34 @@ void TaskStartCreateTasks(void)
                     (INT32U          ) APP_CFG_TASK_STK_SIZE,
                     (void           *) 0,
                     (INT16U          )(OS_TASK_OPT_STK_CHK | OS_TASK_OPT_STK_CLR));
-
+    // OSTaskCreateExt((void (*)(void *)) IR_Receiver,
+    //                 (void           *) 0,
+    //                 (OS_STK         *)&TaskStk[3][APP_CFG_TASK_STK_SIZE - 1],
+    //                 (INT8U           ) 6,
+    //                 (INT16U          ) 6,
+    //                 (OS_STK         *)&TaskStk[3][0],
+    //                 (INT32U          ) APP_CFG_TASK_STK_SIZE,
+    //                 (void           *) 0,
+    //                 (INT16U          )(OS_TASK_OPT_STK_CHK | OS_TASK_OPT_STK_CLR));
+    OSTaskCreateExt((void (*)(void *))UART_Send_IR,
+                (void           *) 0,
+                (OS_STK         *)&TaskStk[4][APP_CFG_TASK_STK_SIZE - 1],
+                (INT8U           ) 6,
+                (INT16U          ) 6,
+                (OS_STK         *)&TaskStk[4][0],
+                (INT32U          ) APP_CFG_TASK_STK_SIZE,
+                (void           *) 0,
+                (INT16U          )(OS_TASK_OPT_STK_CHK | OS_TASK_OPT_STK_CLR));
+    // OSTaskCreateExt((void (*)(void *)) UART_Send,
+    //                 (void           *) 0,
+    //                 (OS_STK         *)&TaskStk[2][APP_CFG_TASK_STK_SIZE - 1],
+    //                 (INT8U           ) 3,
+    //                 (INT16U          ) 3,
+    //                 (OS_STK         *)&TaskStk[2][0],
+    //                 (INT32U          ) APP_CFG_TASK_STK_SIZE,
+    //                 (void           *) 0,
+    //                 (INT16U          )(OS_TASK_OPT_STK_CHK | OS_TASK_OPT_STK_CLR));
+#if 0
     // Task4: PRIORITY=6
     OSTaskCreateExt((void (*)(void *)) Task4,
                     (void           *) 0,
@@ -359,8 +699,52 @@ void TaskStartCreateTasks(void)
                     (INT16U          )(OS_TASK_OPT_STK_CHK | OS_TASK_OPT_STK_CLR));
 #endif
 } // TaskStartCreateTasks()
-
+/*
+* Description : Function to send the command to LCD. As it is 4bit mode, a byte of data is sent in two 4-bit nibbles .
+*               
+* Arguments   : none
+*********************************************************************************************************
+*/
+void Lcd_CmdWrite(unsigned char cmd)
+{
+    LCD_DATA = (LCD_DATA & 0x0f) |(0xF0 & cmd);      //Send higher nibble
+    LCD_CONTROL &= ~(1<<LCD_RS);   // Send LOW pulse on RS pin for selecting Command register
+//  LCD_RW = 0;   // Send LOW pulse on RW pin for Write operation
+    LCD_CONTROL |= 1<<LCD_EN;   // Generate a High-to-low pulse on EN pin
+    OSTimeDlyHMSM(0,0,0,2);
+    LCD_CONTROL &= ~(1<<LCD_EN);
+    LCD_DATA = (LCD_DATA & 0x0f) | (cmd<<4); //Send Lower nibble
+    LCD_CONTROL &= ~(1<<LCD_RS);   // Send LOW pulse on RS pin for selecting Command register
+//  LCD_RW = 0;   // Send LOW pulse on RW pin for Write operation
+    LCD_CONTROL |= 1<<LCD_EN;   // Generate a High-to-low pulse on EN pin
+    OSTimeDlyHMSM(0,0,0,2);
+    LCD_CONTROL &= ~(1<<LCD_EN); 
+    OSTimeDlyHMSM(0,0,0,00152);
+}
+/*
+* Description : Function to send the command to LCD. As it is 4bit mode, a byte of data is sent in two 4-bit nibbles .
+*               
+* Arguments   : none
+*********************************************************************************************************
+*/
+void Lcd_DataWrite(unsigned char dat)
+{
+    LCD_DATA = (LCD_DATA & 0x0f) | (0xF0 & dat);      //Send higher nibble
+    LCD_CONTROL |= 1<<LCD_RS;   // Send HIGH pulse on RS pin for selecting data register
+//  LCD_RW = 0;   // Send LOW pulse on RW pin for Write operation
+    LCD_CONTROL |= 1<<LCD_EN;   // Generate a High-to-low pulse on EN pin
+    OSTimeDlyHMSM(0,0,0,2);
+    LCD_CONTROL &= ~(1<<LCD_EN);
+    LCD_DATA = (LCD_DATA & 0x0f) | (dat<<4);  //Send Lower nibble
+    LCD_CONTROL |= 1<<LCD_RS;    // Send HIGH pulse on RS pin for selecting data register
+//  LCD_RW = 0;    // Send LOW pulse on RW pin for Write operation
+    LCD_CONTROL |= 1<<LCD_EN;    // Generate a High-to-low pulse on EN pin
+    OSTimeDlyHMSM(0,0,0,2);
+    LCD_CONTROL &= ~(1<<LCD_EN); 
+    OSTimeDlyHMSM(0,0,0,.00152);
+}
 // AVR initialization
+
 #if 0
 void AVRInit(void)
 {
@@ -1204,6 +1588,13 @@ void ClockTickStart(void)
 *        
 *********************************************************************************************************
 */
+
+// ISR(USART0_UDRE_vect) {
+//   UCSR0B &= ~(1<<UDRIE0);
+//     UDR0 = 'p';
+//     UCSR0B |= (1<<UDRIE0);
+//     asm("cli");
+// }
 #if 0
 void usartc0_rx_isr_handler(void)
 {

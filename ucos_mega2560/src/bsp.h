@@ -18,9 +18,21 @@
 **************************************************************************************************************
 */
 
-#define  CPU_CLK_FREQ                16000000
+#define CPU_CLK_FREQ                16000000
+#define BAUD                        9600UL       // baud rate
+#define UBRR_VAL ((CPU_CLK_FREQ + BAUD * 8) / (BAUD * 16) -1)    // clever rounding 
 #define LED_PIN0					PJ0
 #define LED_PIN1					PJ1
+#define DC_MOTOR_IN1				PB6
+#define DC_MOTOR_IN2				PB7
+#define IR_TSOP_SESOR				PE5
+/*LCD Connection*/
+#define LCD_RS                      PH1
+#define LCD_EN                      PH0
+#define LCD_DATA                    PORTF
+#define LCD_CONTROL                 PORTH
+#define IR_TSOP_SENSOR_PIN_STATUS (PINE &(1<<IR_TSOP_SESOR))
+static unsigned int ISR_INT5_INTERRUPT_Counter;
 /*
 *********************************************************************************************************
 *                                            FUNCTION PROTOTYPES
@@ -32,6 +44,16 @@ void  BSP_Init(void);
 /*
 *********************************************************************************************************
 *                                             LED SERVICES
+*********************************************************************************************************
+*/
+
+void  LED_On(INT8U led);
+void  LED_Off(INT8U led);
+void  LED_Toggle(INT8U led);
+
+/*
+*********************************************************************************************************
+*                                             LCD 1602 SERVICES
 *********************************************************************************************************
 */
 
