@@ -5,6 +5,7 @@
         "os_cfg.h": "c",
         "includes.h": "c",
         "bsp.h": "c",
-        "ucos_ii.h": "c"
+        "ucos_ii.h": "c",
+        "app_cfg.h": "c"
     }
 }
