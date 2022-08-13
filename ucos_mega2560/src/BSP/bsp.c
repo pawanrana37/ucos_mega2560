@@ -8,9 +8,15 @@
 *
 *
 * File : BSP.C
-* By   : Jean J. Labrosse
+* By   : Pawan Singh Rana
 *********************************************************************************************************
 */
+/*
+*********************************************************************************************************
+*                                               INCLUDES
+*********************************************************************************************************
+*/
+
 #include "includes.h"
 
 /*
@@ -26,8 +32,6 @@ static  void    PB_Init(void);
 static  void    UART_Init(void);
 static  void    DC_Motor_Init(void);
 static  void    IR_Sensor_ISR_Enable(void);
-static  void    IR_Sensor_ISR_Disable(void);
-
 
 
 /*
@@ -52,7 +56,6 @@ void  BSP_Init (void)
      IR_Sensor_ISR_Enable();
 }
 
-
 /*
 *********************************************************************************************************
 *                                       TICKER INITIALIZATION
@@ -74,7 +77,18 @@ static  void  BSP_TickInit (void)
     TIMSK0       |= 0x02;                               /* Enable TIMER0 compare Interrupt             */
 }
 
-ISR(TIMER0_COMPA_vect)          // timer compare interrupt service routine
+/*
+*********************************************************************************************************
+*                                        TIMER ISR
+*
+* Description :  This ISR is triggered every time when timer compare overflow interrupt generates and shall 
+                 be used for OS Tick.
+*               
+* Arguments   : none
+*********************************************************************************************************
+*/
+
+ISR(TIMER0_COMPA_vect)         
 {
 	BSP_TickISR_Handler();
 }
@@ -94,14 +108,7 @@ ISR(TIMER0_COMPA_vect)          // timer compare interrupt service routine
 
 void  BSP_TickISR_Handler (void)
 {
-
-//     cli();
-//     OSIntNesting++;                                      /* Tell uC/OS-II that we are starting an ISR             */
-//     sei();
-
     OSTimeTick();                                           /* Call uC/OS-II's OSTimeTick()                          */
-
-//     OSIntExit();                                            /* Tell uC/OS-II that we are leaving the ISR             */
 }
 
 
@@ -119,32 +126,37 @@ void  BSP_TickISR_Handler (void)
 static  void  LED_Init (void)
 {
      DDRJ  = 0xFF;  
-//     PORTJ=!(1<<LED_PIN0);
-//     PORTJ|=(1<<LED_PIN1);                               /* All PORTD pins are outputs                        */
-    //PORTD = 0xFF;
-    //LED_Off(0);                                   /* Turn ON all the LEDs                              */
 }
+/*
+*********************************************************************************************************
+*                                         BSP INITIALIZATION
+*
+* Description : This function should be called by your application code before you make use of any of the
+*               functions found in this module.
+*               
+* Arguments   : none
+*********************************************************************************************************
+*/
 static  void  DC_Motor_Init (void)
 { 
-     DDRB  = 0xFF;
-                       
+     DDRB  = 0xFF;                     
 }
-
+/*
+*********************************************************************************************************
+*                                         IR Sensor Interrupt Enable
+*
+* Description : This function should be called by your application code before you make use of any of the
+*               functions found in this module.This function shall initialize the IT Sensor PIN to ISR Mode (INT5).
+*               
+* Arguments   : none
+*********************************************************************************************************
+*/
 static  void  IR_Sensor_ISR_Enable (void)
 { 
-     // DDRF  = 0x00;
-     // PORTF = 0x00;
-     // DDRE &= ~(1 << IR_TSOP_SESOR);
-     // PORTE = (1 << IR_TSOP_SESOR);
-     // EICRB = (1<<ISC50)|(1<<ISC50);
      EICRB = (1<<ISC50);
      EIMSK = (1<<INT5);                      
 }
-static  void  IR_Sensor_ISR_Disable (void)
-{ 
-     EICRB &= ~(1 << ISC50);
-     EIMSK &= ~(1<<INT5);                   
-}
+
 /*
 *********************************************************************************************************
 *
