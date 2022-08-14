@@ -26,11 +26,11 @@
 */
 
 static  void    BSP_TickInit(void);
-static  void    LED_Init(void);
+extern  void    Fx_LED_Init(void);
 static  void    LCD_Init(void);
 static  void    PB_Init(void);
 static  void    UART_Init(void);
-static  void    DC_Motor_Init(void);
+static  void    Fx_DC_Motor_Init(void);
 static  void    IR_Sensor_ISR_Enable(void);
 
 
@@ -47,8 +47,8 @@ static  void    IR_Sensor_ISR_Enable(void);
 
 void  BSP_Init (void)
 {
-     LED_Init();
-     DC_Motor_Init();
+     Fx_LED_Init();
+     Fx_DC_Motor_Init();
      LCD_Init();
      PB_Init();
      UART_Init();
@@ -112,35 +112,6 @@ void  BSP_TickISR_Handler (void)
 }
 
 
-/*
-*********************************************************************************************************
-*                                         BSP INITIALIZATION
-*
-* Description : This function should be called by your application code before you make use of any of the
-*               functions found in this module.
-*               
-* Arguments   : none
-*********************************************************************************************************
-*/
-
-static  void  LED_Init (void)
-{
-     DDRJ  = 0xFF;  
-}
-/*
-*********************************************************************************************************
-*                                         BSP INITIALIZATION
-*
-* Description : This function should be called by your application code before you make use of any of the
-*               functions found in this module.
-*               
-* Arguments   : none
-*********************************************************************************************************
-*/
-static  void  DC_Motor_Init (void)
-{ 
-     DDRB  = 0xFF;                     
-}
 /*
 *********************************************************************************************************
 *                                         IR Sensor Interrupt Enable
