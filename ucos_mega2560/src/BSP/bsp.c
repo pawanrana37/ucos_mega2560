@@ -31,7 +31,7 @@ static  void    LCD_Init(void);
 static  void    PB_Init(void);
 static  void    UART_Init(void);
 static  void    Fx_DC_Motor_Init(void);
-static  void    IR_Sensor_ISR_Enable(void);
+extern  void    IR_Sensor_ISR_Enable(void);
 
 
 /*
@@ -111,22 +111,6 @@ void  BSP_TickISR_Handler (void)
     OSTimeTick();                                           /* Call uC/OS-II's OSTimeTick()                          */
 }
 
-
-/*
-*********************************************************************************************************
-*                                         IR Sensor Interrupt Enable
-*
-* Description : This function should be called by your application code before you make use of any of the
-*               functions found in this module.This function shall initialize the IT Sensor PIN to ISR Mode (INT5).
-*               
-* Arguments   : none
-*********************************************************************************************************
-*/
-static  void  IR_Sensor_ISR_Enable (void)
-{ 
-     EICRB = (1<<ISC50);
-     EIMSK = (1<<INT5);                      
-}
 
 /*
 *********************************************************************************************************

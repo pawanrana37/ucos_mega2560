@@ -225,7 +225,7 @@ static void TASK_RTE_IR(void *p_arg)
 {
     while(1)
     {
-        OSTimeDlyHMSM(0,0,2,0);
+        OSTimeDlyHMSM(0,0,0,1);
     }
 
 } 

@@ -17,11 +17,11 @@
 *                                               INCLUDES
 *********************************************************************************************************
 */
-
+#include "Dio_Cfg.h"
 #include "includes.h"
 #include <avr_debugger.h>
 #include "avr8-stub.h"
-#include "Dio_Cfg.h"
+
 /*
 *********************************************************************************************************
 *                                               DEFINES
@@ -31,44 +31,38 @@
 #define IR_FRAME_TOTAL_TIME 68u
 
 #define IR_TSOP_SESOR				PE5
-#define IR_TSOP_SENSOR_PIN_STATUS (Dio_ReadChannel(AVR_PORTE,IR_TSOP_SESOR))
+#define IR_TSOP_SENSOR_PIN_STATUS Dio_ReadChannel(AVR_PORTE,IR_TSOP_SESOR)
 /*
 *********************************************************************************************************
 *                                              GLOBAL VARIABLES
 *********************************************************************************************************
 */
-
-typedef struct ir_data_struct 
-{
     /*Capture OS Tick*/
     volatile unsigned int previous_tick_count;
     volatile unsigned int current_tick_count;
 
-    volatile unsigned int alive_counter;
-    
     /*Capture Frame*/
-    volatile unsigned int IR_Command_Sequence; 
-    volatile unsigned int IR_Address_Sequence;
-    volatile unsigned int IR_Startup_Sequence;  
-    volatile unsigned int IR_Start_Frame_Init;
-    volatile unsigned int IR_RepeatCode_Sequence;
-    volatile unsigned int IR_CommandData_Time_Counter; 
+    volatile unsigned int IR_Command_Sequence=0; 
+    volatile unsigned int IR_Address_Sequence=0;
+    volatile unsigned int IR_Startup_Sequence=0;  
+    volatile unsigned int IR_Start_Frame_Init=0;
+    volatile unsigned int IR_RepeatCode_Sequence=0;
+    volatile unsigned int IR_CommandData_Time_Counter=0; 
 
     /*Capture Command Data*/
     volatile unsigned  int ir_raw_data_0;
 
-} ir_strucet_t; 
 
-static ir_strucet_t ir_str_t=   {.previous_tick_count = FALSE,
-                                .current_tick_count = FALSE,
-                                .IR_Command_Sequence = FALSE,
-                                .IR_Address_Sequence = FALSE,
-                                .IR_Startup_Sequence = FALSE,
-                                .IR_Start_Frame_Init = FALSE,
-                                .IR_RepeatCode_Sequence = FALSE,
-                                .IR_CommandData_Time_Counter = FALSE,
-                                .ir_raw_data_0 = 0b0000000
-                                }; 
+// volatile ir_strucet_t ir_str_t=   {.previous_tick_count = FALSE,
+//                                 .current_tick_count = FALSE,
+//                                 .IR_Command_Sequence = FALSE,
+//                                 .IR_Address_Sequence = FALSE,
+//                                 .IR_Startup_Sequence = FALSE,
+//                                 .IR_Start_Frame_Init = FALSE,
+//                                 .IR_RepeatCode_Sequence = FALSE,
+//                                 .IR_CommandData_Time_Counter = FALSE,
+//                                 .ir_raw_data_0 = 0b0000000
+//                                 }; 
 
 extern OS_EVENT *msgbox; 
 
@@ -82,6 +76,8 @@ static void IR_Calculate_Frame(void);
 static void IR_Retrive_CommandData(void);
 static void IR_Retrive_AddressData(void);
 static void IR_Retrive_StartFrame(void);
+static void IR_ISR_Init(void);
+void    IR_Sensor_ISR_Enable(void);
 
 /*
 *********************************************************************************************************
@@ -93,15 +89,14 @@ static void IR_Retrive_StartFrame(void);
 */
 static void IR_Retrive_RepeatCode(void)
 {
-    if(ir_str_t.IR_RepeatCode_Sequence == FALSE && ir_str_t.IR_Command_Sequence == TRUE && ir_str_t.IR_Address_Sequence == TRUE && ir_str_t.IR_Startup_Sequence == TRUE && ir_str_t.IR_Start_Frame_Init == TRUE)
+    if(IR_RepeatCode_Sequence == FALSE && IR_Command_Sequence == TRUE && IR_Address_Sequence == TRUE && IR_Startup_Sequence == TRUE && IR_Start_Frame_Init == TRUE)
     {
-        ir_str_t.current_tick_count = OSTimeGet();
-        if(((ir_str_t.current_tick_count - ir_str_t.previous_tick_count) >= 121))
+        current_tick_count = OSTimeGet();
+        if(((current_tick_count - previous_tick_count) >= 121))
         {
 
-            ir_str_t.IR_Start_Frame_Init = FALSE;
-            breakpoint();
-            ir_str_t.ir_raw_data_0 = FALSE;
+            IR_Start_Frame_Init = FALSE;
+            ir_raw_data_0 = FALSE;
         }
 
     }
@@ -116,31 +111,37 @@ static void IR_Retrive_RepeatCode(void)
 */
 static void IR_Retrive_CommandData(void)
 {
-    if(ir_str_t.IR_Command_Sequence == FALSE && ir_str_t.IR_Address_Sequence == TRUE && ir_str_t.IR_Startup_Sequence == TRUE && ir_str_t.IR_Start_Frame_Init == TRUE)
+    if(IR_Command_Sequence == FALSE && IR_Address_Sequence == TRUE && IR_Startup_Sequence == TRUE && IR_Start_Frame_Init == TRUE)
     {
-        ir_str_t.current_tick_count = OSTimeGet();
-        if(((ir_str_t.current_tick_count - ir_str_t.previous_tick_count) >= (IR_FRAME_TIME_STARTUP_PLUS_ADDRESS + ir_str_t.IR_CommandData_Time_Counter))&& ((ir_str_t.current_tick_count - ir_str_t.previous_tick_count) <= IR_FRAME_TOTAL_TIME))
+        current_tick_count = OSTimeGet();
+        if(((current_tick_count - previous_tick_count) >= (IR_FRAME_TIME_STARTUP_PLUS_ADDRESS + IR_CommandData_Time_Counter))&& ((current_tick_count - previous_tick_count) <= IR_FRAME_TOTAL_TIME))
         {
-            if (IR_TSOP_SENSOR_PIN_STATUS == FALSE) {
-                ir_str_t.ir_raw_data_0 &= ~(1 << (8 - (ir_str_t.IR_CommandData_Time_Counter/3))); //Clear bit (7-b)
-            } else {
-                ir_str_t.ir_raw_data_0 |= (1 << (8 - (ir_str_t.IR_CommandData_Time_Counter/3))); //Set bit (7-b)
+
+            if ((IR_TSOP_SENSOR_PIN_STATUS) == FALSE) 
+            {
+                ir_raw_data_0 &= ~(1 << (8 - (IR_CommandData_Time_Counter/3))); //Clear bit (7-b)
+            } 
+            else 
+            {
+                ir_raw_data_0 |= (1 << (8 - (IR_CommandData_Time_Counter/3))); //Set bit (7-b)
             } 
             
-            ir_str_t.IR_CommandData_Time_Counter = ir_str_t.IR_CommandData_Time_Counter +3;
+            IR_CommandData_Time_Counter = IR_CommandData_Time_Counter +3;
 
         }
         else
         {
-                /**Do Nothing*/
+            /**Do Nothing*/
+
         }
-        if((ir_str_t.current_tick_count - ir_str_t.previous_tick_count) >=69)
+        if((current_tick_count - previous_tick_count) >=68)
         {
-            OSMboxPost(msgbox, ir_str_t.ir_raw_data_0);
-            ir_str_t.IR_Command_Sequence = TRUE;
-            ir_str_t.IR_CommandData_Time_Counter = 3;
-            ir_str_t.previous_tick_count = OSTimeGet();
-            ir_str_t.IR_Start_Frame_Init = FALSE;
+            // breakpoint();
+            OSMboxPost(msgbox, ir_raw_data_0);
+            IR_Command_Sequence = TRUE;
+            IR_CommandData_Time_Counter = 3;
+            previous_tick_count = OSTimeGet();
+            IR_Start_Frame_Init = FALSE;
         }
 
     }
@@ -156,14 +157,13 @@ static void IR_Retrive_CommandData(void)
 */
 static void IR_Retrive_AddressData(void)
 {
-    if(ir_str_t.IR_Address_Sequence == FALSE && ir_str_t.IR_Startup_Sequence == TRUE && ir_str_t.IR_Start_Frame_Init == TRUE)
+    if(IR_Address_Sequence == FALSE && IR_Startup_Sequence == TRUE && IR_Start_Frame_Init == TRUE)
     {
     
-        ir_str_t.current_tick_count = OSTimeGet();
-        if((ir_str_t.current_tick_count - ir_str_t.previous_tick_count) > IR_FRAME_TIME_STARTUP_PLUS_ADDRESS)
+        current_tick_count = OSTimeGet();
+        if((current_tick_count - previous_tick_count) >=IR_FRAME_TIME_STARTUP_PLUS_ADDRESS)
         {
-            ir_str_t.IR_Address_Sequence = TRUE;
-            ir_str_t.IR_Command_Sequence = FALSE;
+            IR_Address_Sequence = TRUE;
 
         }
     }
@@ -179,15 +179,31 @@ static void IR_Retrive_AddressData(void)
 
 static void IR_Retrive_StartFrame(void)
 {
-    if(ir_str_t.IR_Startup_Sequence == FALSE && ir_str_t.IR_Start_Frame_Init == TRUE)
+    if(IR_Startup_Sequence == FALSE && IR_Start_Frame_Init == TRUE)
     {
-        ir_str_t.current_tick_count = OSTimeGet();
-        if((ir_str_t.current_tick_count - ir_str_t.previous_tick_count) > 14)
-        {
-            ir_str_t.IR_Startup_Sequence = TRUE;
-            ir_str_t.IR_Address_Sequence = FALSE;
+        current_tick_count = OSTimeGet();
+        // if((current_tick_count - previous_tick_count) >=14)
+        // {
+        //     IR_Startup_Sequence = TRUE;
+        // }
+        // if((current_tick_count - previous_tick_count) <=8)
+        // {
 
-        }
+        //     if ((PINE &(1<<IR_TSOP_SESOR)) == FALSE) 
+        //     {
+        //         ir_raw_data_0 = 25;
+        //     } 
+        // }
+        // if((current_tick_count - previous_tick_count) > 9)
+        // {
+
+        //     if ((PINE &(1<<IR_TSOP_SESOR)) == TRUE) 
+        //     {
+        //         ir_raw_data_0 = 26;
+        //         breakpoint();
+        //     } 
+        // }
+
     }
 
 }
@@ -201,13 +217,30 @@ static void IR_Retrive_StartFrame(void)
 */
 static void IR_ISR_Init(void)
 {
-    if(ir_str_t.IR_Start_Frame_Init == FALSE)
+    if(IR_Start_Frame_Init == FALSE)
     {
-        ir_str_t.previous_tick_count = OSTimeGet();
-        ir_str_t.IR_Start_Frame_Init = TRUE;
-        ir_str_t.IR_Startup_Sequence = FALSE;
+        previous_tick_count = OSTimeGet();
+        IR_Start_Frame_Init = TRUE;
     }
+    // breakpoint();
 
+}
+/*
+*********************************************************************************************************
+*                                         IR Sensor Interrupt Enable
+*
+* Description : This function should be called by your application code before you make use of any of the
+*               functions found in this module.This function shall initialize the IT Sensor PIN to ISR Mode (INT5).
+*               
+* Arguments   : none
+*********************************************************************************************************
+*/
+void  IR_Sensor_ISR_Enable (void)
+{ 
+    PORTE = 0x00;
+    DDRE = 0x00;
+    EICRB = (1<<ISC50);
+    EIMSK = (1<<INT5);                      
 }
 
 /*
@@ -220,10 +253,16 @@ static void IR_ISR_Init(void)
 */
 ISR(INT5_vect)
 {
-    IR_ISR_Init();
-    IR_Retrive_StartFrame();
-    IR_Retrive_AddressData();
-    IR_Retrive_CommandData();
+    if ((PINE &(1<<IR_TSOP_SESOR)) == TRUE) 
+    {
+        ir_raw_data_0 = 26;
+        breakpoint();
+    }
+    // IR_ISR_Init();
+    // IR_Retrive_StartFrame();
+    // IR_Retrive_AddressData();
+    // IR_Retrive_CommandData();
     // IR_Retrive_RepeatCode();
+
 }
 

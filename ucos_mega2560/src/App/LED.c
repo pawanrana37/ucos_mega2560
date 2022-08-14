@@ -73,6 +73,6 @@ void  Fx_LED_Init (void)
 void  Fx_LED_Blink_MainFunction (void)
 {
     Dio_FlipChannel(AVR_PORTJ,LED_PIN1);
-    Dio_WriteChannel(AVR_PORTJ,LED_PIN0,HIGH);
+    Dio_WriteChannel(AVR_PORTJ,LED_PIN0,LOW);
    
 }
