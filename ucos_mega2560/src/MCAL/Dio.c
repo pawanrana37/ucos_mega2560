@@ -154,11 +154,7 @@ void Dio_WriteChannel(uint8_t port,uint8_t channel,uint8_t level)
 */
 uint8_t Dio_ReadChannel(uint8_t port,uint8_t channel)
 {
-    #if OS_CRITICAL_METHOD == 3                      /* Allocate storage for CPU status register           */
-    OS_CPU_SR  cpu_sr = 0;
-    #endif
 
-    OS_ENTER_CRITICAL();
     switch( port )
 	{
         case 1:
@@ -179,6 +175,7 @@ uint8_t Dio_ReadChannel(uint8_t port,uint8_t channel)
 
         case 5:
             return (PINE &(1<<channel));
+
             break;
 
         case 6:
@@ -209,7 +206,6 @@ uint8_t Dio_ReadChannel(uint8_t port,uint8_t channel)
             return 0;
             break;
 	}
-    OS_EXIT_CRITICAL();
 }
 
 /*
