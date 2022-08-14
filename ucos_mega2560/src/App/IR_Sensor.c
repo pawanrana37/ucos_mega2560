@@ -21,7 +21,7 @@
 #include "includes.h"
 #include <avr_debugger.h>
 #include "avr8-stub.h"
-
+#include "Dio_Cfg.h"
 /*
 *********************************************************************************************************
 *                                               DEFINES
@@ -29,6 +29,9 @@
 */
 #define IR_FRAME_TIME_STARTUP_PLUS_ADDRESS 41u
 #define IR_FRAME_TOTAL_TIME 68u
+
+#define IR_TSOP_SESOR				PE5
+#define IR_TSOP_SENSOR_PIN_STATUS (Dio_ReadChannel(AVR_PORTE,IR_TSOP_SESOR))
 /*
 *********************************************************************************************************
 *                                              GLOBAL VARIABLES

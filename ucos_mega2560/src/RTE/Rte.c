@@ -27,7 +27,8 @@
 *                                               DEFINES
 *********************************************************************************************************
 */
-
+# define RTE_E_NOT_OK 1
+# define RTE_E_OK 0
 /*
 *********************************************************************************************************
 *                                              GLOBAL VARIABLES
@@ -48,6 +49,8 @@ static void TaskStart(void *p_arg);
 static void TaskStartCreateTasks(void);
 extern void OS_Resource_Init(void);
 extern void OS_Task_Create_Ext(void);
+extern void Fx_LED_Blink_MainFunction(void);
+extern void Fx_DC_Motor_MainFunction(void);
 
 /*
 *********************************************************************************************************
@@ -140,8 +143,7 @@ static void TASK_RTE_LED(void *p_arg)
 {
     while (1)
     {
-        PORTJ^=(1<<LED_PIN1);
-        PORTJ^=(1<<LED_PIN0);
+        Fx_LED_Blink_MainFunction();
         OSTimeDlyHMSM(0,0,0,100);
 
     }   
@@ -199,21 +201,16 @@ static void TASK_RTE_LED(void *p_arg)
 * Arguments   : none
 *********************************************************************************************************
 */
-// static void TASK_RTE_DC_MOTOR(void *p_arg)
-// {
+static void TASK_RTE_DC_MOTOR(void *p_arg)
+{
 
-//     while(1)
-//     {
-//         PORTB|=(1<<DC_MOTOR_IN1);
-//         PORTB&=~(1<<DC_MOTOR_IN2);
-//         OSTimeDlyHMSM(0,0,5,0);
+    while(1)
+    {
+        Fx_DC_Motor_MainFunction();
 
-//         PORTB|=(1<<DC_MOTOR_IN2);
-//         PORTB&=~(1<<DC_MOTOR_IN1);
-//         OSTimeDlyHMSM(0,0,5,0);
-//     }   
+    }   
    
-// }
+}
 /*
 *********************************************************************************************************
 *                                               TASK_RTE_IR
@@ -317,15 +314,15 @@ void TaskStartCreateTasks(void)
     //                 (void           *) 0,
     //                 (INT16U          )(OS_TASK_OPT_STK_CHK | OS_TASK_OPT_STK_CLR));
 
-    // OSTaskCreateExt((void (*)(void *)) TASK_RTE_IR,
-    //                 (void           *) 0,
-    //                 (OS_STK         *)&TaskStk[1][APP_CFG_TASK_STK_SIZE - 1],
-    //                 (INT8U           ) 4,
-    //                 (INT16U          ) 4,
-    //                 (OS_STK         *)&TaskStk[1][0],
-    //                 (INT32U          ) APP_CFG_TASK_STK_SIZE,
-    //                 (void           *) 0,
-    //                 (INT16U          )(OS_TASK_OPT_STK_CHK | OS_TASK_OPT_STK_CLR));
+    OSTaskCreateExt((void (*)(void *)) TASK_RTE_IR,
+                    (void           *) 0,
+                    (OS_STK         *)&TaskStk[1][APP_CFG_TASK_STK_SIZE - 1],
+                    (INT8U           ) 4,
+                    (INT16U          ) 4,
+                    (OS_STK         *)&TaskStk[1][0],
+                    (INT32U          ) APP_CFG_TASK_STK_SIZE,
+                    (void           *) 0,
+                    (INT16U          )(OS_TASK_OPT_STK_CHK | OS_TASK_OPT_STK_CLR));
 
     // OSTaskCreateExt((void (*)(void *))TASK_RTE_UART,
     //             (void           *) 0,
