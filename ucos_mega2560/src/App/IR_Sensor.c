@@ -27,11 +27,26 @@
 *                                               DEFINES
 *********************************************************************************************************
 */
-#define IR_FRAME_TIME_STARTUP_PLUS_ADDRESS 41u
-#define IR_FRAME_TOTAL_TIME 68u
-
 #define IR_TSOP_SESOR				PE5
 #define IR_TSOP_SENSOR_PIN_STATUS Dio_ReadChannel(AVR_PORTE,IR_TSOP_SESOR)
+
+#define IR_TSOP_SENSOR_9ms_COUNT_UPPER 9870u
+#define IR_TSOP_SENSOR_9ms_COUNT_LOWER 9780u
+
+#define IR_TSOP_SENSOR_4_5ms_COUNT_UPPER 4760u
+#define IR_TSOP_SENSOR_4_5ms_COUNT_LOWER 4700u
+
+#define IR_TSOP_SENSOR_562us_COUNT_UPPER 750u
+#define IR_TSOP_SENSOR_562us_COUNT_LOWER 700u
+
+#define IR_TSOP_SENSOR_2_25ms_COUNT_UPPER 2400u
+#define IR_TSOP_SENSOR_2_25ms_COUNT_LOWER 2300u
+
+#define IR_TSOP_SENSOR_1_12ms_COUNT_UPPER 1250u
+#define IR_TSOP_SENSOR_1_12ms_COUNT_LOWER 1200u
+
+#define IR_TSOP_SENSOR_3_37ms_COUNT_UPPER 2846u
+#define IR_TSOP_SENSOR_3_37ms_COUNT_LOWER 2546u
 /*
 *********************************************************************************************************
 *                                              GLOBAL VARIABLES
@@ -42,27 +57,27 @@
     volatile unsigned int current_tick_count;
 
     /*Capture Frame*/
-    volatile unsigned int IR_Command_Sequence=0; 
-    volatile unsigned int IR_Address_Sequence=0;
-    volatile unsigned int IR_Startup_Sequence=0;  
+    volatile unsigned int IR_Command_Sequence_Data=0; 
+    volatile unsigned int IR_Command_Sequence_Data_Inverse=0; 
+    volatile unsigned int IR_Address_Sequence_Data=0;
+    volatile unsigned int IR_Address_Sequence_Data_Inverse=0;
+    volatile unsigned int IR_Startup_Sequence_4_5ms=0;  
+    volatile unsigned int IR_Startup_Sequence_9ms=0; 
     volatile unsigned int IR_Start_Frame_Init=0;
     volatile unsigned int IR_RepeatCode_Sequence=0;
     volatile unsigned int IR_CommandData_Time_Counter=0; 
+    volatile unsigned int IR_Address_Dummy_Sequence=0; 
 
     /*Capture Command Data*/
-    volatile unsigned  int ir_raw_data_0;
+    volatile int ir_raw_command_data_0=0x00;
+    volatile int ir_raw_command_data_1=0x00;
 
+    /*Capture Address Data*/
+    volatile int ir_raw_address_data_0=0x00;
+    volatile int ir_raw_address_data_1=0x00;
 
-// volatile ir_strucet_t ir_str_t=   {.previous_tick_count = FALSE,
-//                                 .current_tick_count = FALSE,
-//                                 .IR_Command_Sequence = FALSE,
-//                                 .IR_Address_Sequence = FALSE,
-//                                 .IR_Startup_Sequence = FALSE,
-//                                 .IR_Start_Frame_Init = FALSE,
-//                                 .IR_RepeatCode_Sequence = FALSE,
-//                                 .IR_CommandData_Time_Counter = FALSE,
-//                                 .ir_raw_data_0 = 0b0000000
-//                                 }; 
+    /*calculate number of interrupts*/
+    volatile unsigned  int ir_no_interrupts=0;
 
 extern OS_EVENT *msgbox; 
 
@@ -74,10 +89,20 @@ extern OS_EVENT *msgbox;
 static void IR_Retrive_RepeatCode(void);
 static void IR_Calculate_Frame(void);
 static void IR_Retrive_CommandData(void);
+static void IR_Retrive_CommandData_Inverse(void);
 static void IR_Retrive_AddressData(void);
+static void IR_Retrive_AddressData_Inverse(void);
+
 static void IR_Retrive_StartFrame(void);
 static void IR_ISR_Init(void);
+void IR_Sensor_ISR_Config(void);
+void IR_Sensor_TIMER_ISR_Config(void);
+
 void    IR_Sensor_ISR_Enable(void);
+void    IR_Sensor_ISR_Disable(void);
+void    IR_Sensor_TIMER_ISR_Disable(void);
+void    IR_Sensor_TIMER_ISR_Enable(void);
+
 
 /*
 *********************************************************************************************************
@@ -89,59 +114,111 @@ void    IR_Sensor_ISR_Enable(void);
 */
 static void IR_Retrive_RepeatCode(void)
 {
-    if(IR_RepeatCode_Sequence == FALSE && IR_Command_Sequence == TRUE && IR_Address_Sequence == TRUE && IR_Startup_Sequence == TRUE && IR_Start_Frame_Init == TRUE)
-    {
-        current_tick_count = OSTimeGet();
-        if(((current_tick_count - previous_tick_count) >= 121))
-        {
+    ir_no_interrupts = 0;
+    breakpoint();
+    IR_Command_Sequence_Data_Inverse = FALSE;
+    IR_Command_Sequence_Data = FALSE;
+    IR_Address_Sequence_Data_Inverse = FALSE;
+    IR_Address_Sequence_Data = FALSE;
+    IR_Startup_Sequence_4_5ms = FALSE;
+    IR_Startup_Sequence_9ms = FALSE;
+    IR_Start_Frame_Init = FALSE;
+    ir_raw_command_data_1 = 0;
+    ir_raw_command_data_0 = 0;
+    ir_raw_address_data_0 = 0;
+    ir_raw_address_data_1 = 0;
 
-            IR_Start_Frame_Init = FALSE;
-            ir_raw_data_0 = FALSE;
+}
+/*
+*********************************************************************************************************
+*                                                   IR_Retrive_CommandData_Inverse
+* Description : This function capture the IR Data Inverse Frame.
+*               
+* Arguments   : none
+*********************************************************************************************************
+*/
+static void IR_Retrive_CommandData_Inverse(void)
+{
+    static unsigned int i=0;
+    if(IR_Command_Sequence_Data_Inverse == FALSE && IR_Command_Sequence_Data == TRUE && IR_Address_Sequence_Data_Inverse == TRUE && IR_Address_Sequence_Data == TRUE && IR_Startup_Sequence_4_5ms == TRUE && IR_Startup_Sequence_9ms == TRUE && IR_Start_Frame_Init == TRUE)
+    {
+
+        for(i=0;i<=7;i++)
+        {
+            IR_Command_Sequence_Data_Inverse = FALSE;
+
+            while((PINE &(1<<IR_TSOP_SESOR)) == (1<<IR_TSOP_SESOR))
+            {
+                ir_no_interrupts++;
+
+            }
+            while((PINE &(1<<IR_TSOP_SESOR)) != (1<<IR_TSOP_SESOR))
+            {
+                ir_no_interrupts++;
+
+            }
+            if((ir_no_interrupts > IR_TSOP_SENSOR_2_25ms_COUNT_LOWER && ir_no_interrupts < IR_TSOP_SENSOR_2_25ms_COUNT_UPPER))
+            {
+                ir_raw_command_data_1 |= (1 << (7 - i)); //Set bit (7-b)
+                ir_no_interrupts = 0;
+                
+            } 
+            else if ((ir_no_interrupts > IR_TSOP_SENSOR_1_12ms_COUNT_LOWER && ir_no_interrupts < IR_TSOP_SENSOR_1_12ms_COUNT_UPPER))
+            {
+                ir_raw_command_data_1 &= ~(1 << (7 - i)); //Clear bit (7-b)
+                ir_no_interrupts = 0;
+            }
+
+            IR_Command_Sequence_Data_Inverse = TRUE;
+            ir_no_interrupts = 0;
+
         }
 
     }
+
 }
 /*
 *********************************************************************************************************
 *                                                   IR_Retrive_CommandData
-* Description : This function capture the 27ms CommandFrame and Extract the Data out of it.
+* Description : This function capture the IR Data Frame.
 *               
 * Arguments   : none
 *********************************************************************************************************
 */
 static void IR_Retrive_CommandData(void)
 {
-    if(IR_Command_Sequence == FALSE && IR_Address_Sequence == TRUE && IR_Startup_Sequence == TRUE && IR_Start_Frame_Init == TRUE)
+    static unsigned int i=0;
+    if(IR_Command_Sequence_Data == FALSE && IR_Address_Sequence_Data_Inverse == TRUE && IR_Address_Sequence_Data == TRUE && IR_Startup_Sequence_4_5ms == TRUE && IR_Startup_Sequence_9ms == TRUE && IR_Start_Frame_Init == TRUE)
     {
-        current_tick_count = OSTimeGet();
-        if(((current_tick_count - previous_tick_count) >= (IR_FRAME_TIME_STARTUP_PLUS_ADDRESS + IR_CommandData_Time_Counter))&& ((current_tick_count - previous_tick_count) <= IR_FRAME_TOTAL_TIME))
+        for(i=0;i<=7;i++)
         {
+            IR_Command_Sequence_Data = FALSE;
 
-            if ((IR_TSOP_SENSOR_PIN_STATUS) == FALSE) 
+            while((PINE &(1<<IR_TSOP_SESOR)) == (1<<IR_TSOP_SESOR))
             {
-                ir_raw_data_0 &= ~(1 << (8 - (IR_CommandData_Time_Counter/3))); //Clear bit (7-b)
-            } 
-            else 
+                ir_no_interrupts++;
+
+            }
+            while((PINE &(1<<IR_TSOP_SESOR)) != (1<<IR_TSOP_SESOR))
             {
-                ir_raw_data_0 |= (1 << (8 - (IR_CommandData_Time_Counter/3))); //Set bit (7-b)
+                ir_no_interrupts++;
+
+            }
+            if((ir_no_interrupts > IR_TSOP_SENSOR_2_25ms_COUNT_LOWER && ir_no_interrupts < IR_TSOP_SENSOR_2_25ms_COUNT_UPPER))
+            {
+                ir_raw_command_data_0 |= (1 << (7 - i)); //Set bit (7-b)
+                ir_no_interrupts = 0;
+                
             } 
-            
-            IR_CommandData_Time_Counter = IR_CommandData_Time_Counter +3;
+            else if ((ir_no_interrupts > IR_TSOP_SENSOR_1_12ms_COUNT_LOWER && ir_no_interrupts < IR_TSOP_SENSOR_1_12ms_COUNT_UPPER))
+            {
+                ir_raw_command_data_0 &= ~(1 << (7 - i)); //Clear bit (7-b)
+                ir_no_interrupts = 0;
+            }
 
-        }
-        else
-        {
-            /**Do Nothing*/
+            IR_Command_Sequence_Data = TRUE;
+            ir_no_interrupts = 0;
 
-        }
-        if((current_tick_count - previous_tick_count) >=68)
-        {
-            // breakpoint();
-            OSMboxPost(msgbox, ir_raw_data_0);
-            IR_Command_Sequence = TRUE;
-            IR_CommandData_Time_Counter = 3;
-            previous_tick_count = OSTimeGet();
-            IR_Start_Frame_Init = FALSE;
         }
 
     }
@@ -150,59 +227,149 @@ static void IR_Retrive_CommandData(void)
 /*
 *********************************************************************************************************
 *                                                   IR_Retrive_AddressData
-* Description : This function capture the 27ms Address Frame.
+* Description : This function capture the IR Address Inverse Frame.
+*               
+* Arguments   : none
+*********************************************************************************************************
+*/
+static void IR_Retrive_AddressData_Inverse(void)
+{
+    static unsigned int i=0;
+    if(IR_Address_Sequence_Data_Inverse == FALSE && IR_Address_Sequence_Data == TRUE && IR_Startup_Sequence_4_5ms == TRUE && IR_Startup_Sequence_9ms == TRUE && IR_Start_Frame_Init == TRUE)
+    {
+        for(i=0;i<=7;i++)
+        {
+            IR_Address_Sequence_Data_Inverse = FALSE;
+
+            while((PINE &(1<<IR_TSOP_SESOR)) == (1<<IR_TSOP_SESOR))
+            {
+                ir_no_interrupts++;
+
+            }
+            while((PINE &(1<<IR_TSOP_SESOR)) != (1<<IR_TSOP_SESOR))
+            {
+                ir_no_interrupts++;
+
+            }
+            if((ir_no_interrupts > IR_TSOP_SENSOR_2_25ms_COUNT_LOWER && ir_no_interrupts < IR_TSOP_SENSOR_2_25ms_COUNT_UPPER))
+            {
+                ir_raw_address_data_1 |= (1 << (7 - i)); //Set bit (7-b)
+                ir_no_interrupts = 0;
+                
+            } 
+            else if ((ir_no_interrupts > IR_TSOP_SENSOR_1_12ms_COUNT_LOWER && ir_no_interrupts < IR_TSOP_SENSOR_1_12ms_COUNT_UPPER))
+            {
+                ir_raw_address_data_1 &= ~(1 << (7 - i)); //Clear bit (7-b)
+                ir_no_interrupts = 0;
+            }
+
+            IR_Address_Sequence_Data_Inverse = TRUE;
+            ir_no_interrupts = 0;
+
+        }
+
+    }
+}
+/*
+*********************************************************************************************************
+*                                                   IR_Retrive_AddressData
+* Description : This function capture the IR Address Frame.
 *               
 * Arguments   : none
 *********************************************************************************************************
 */
 static void IR_Retrive_AddressData(void)
 {
-    if(IR_Address_Sequence == FALSE && IR_Startup_Sequence == TRUE && IR_Start_Frame_Init == TRUE)
+    static unsigned int i=0;
+    if(IR_Address_Sequence_Data == FALSE && IR_Startup_Sequence_4_5ms == TRUE && IR_Startup_Sequence_9ms == TRUE && IR_Start_Frame_Init == TRUE)
     {
-    
-        current_tick_count = OSTimeGet();
-        if((current_tick_count - previous_tick_count) >=IR_FRAME_TIME_STARTUP_PLUS_ADDRESS)
+        while((PINE &(1<<IR_TSOP_SESOR)) != (1<<IR_TSOP_SESOR))
         {
-            IR_Address_Sequence = TRUE;
+            /*DO Nothing Dummy Transition*/
+        }
+        for(i=0;i<=7;i++)
+        {
+            IR_Address_Sequence_Data = FALSE;
+
+            while((PINE &(1<<IR_TSOP_SESOR)) == (1<<IR_TSOP_SESOR))
+            {
+                ir_no_interrupts++;
+
+            }
+            while((PINE &(1<<IR_TSOP_SESOR)) != (1<<IR_TSOP_SESOR))
+            {
+                ir_no_interrupts++;
+
+            }
+            if ((ir_no_interrupts > IR_TSOP_SENSOR_1_12ms_COUNT_LOWER && ir_no_interrupts < IR_TSOP_SENSOR_1_12ms_COUNT_UPPER))
+            {
+                ir_raw_address_data_0 &= ~(1 << (7 - i)); //Clear bit (7-b)
+                ir_no_interrupts = 0;
+            }
+            else if((ir_no_interrupts > IR_TSOP_SENSOR_2_25ms_COUNT_LOWER && ir_no_interrupts < IR_TSOP_SENSOR_2_25ms_COUNT_UPPER))
+            {
+                ir_raw_address_data_0 |= (1 << (7 - i)); //Set bit (7-b)
+                ir_no_interrupts = 0;
+                
+            } 
+
+            IR_Address_Sequence_Data = TRUE;
+            ir_no_interrupts = 0;
 
         }
+
     }
 }
 /*
 *********************************************************************************************************
 *                                                   IR_Retrive_StartFrame
-* Description : This function capture the 9ms LOW and 4.5ms HIGH pulse.
+* Description : This function capture the 4.5ms HIGH pulse.
 *               
 * Arguments   : none
 *********************************************************************************************************
 */
 
-static void IR_Retrive_StartFrame(void)
+static void IR_Retrive_StartFrame_4_5ms(void)
 {
-    if(IR_Startup_Sequence == FALSE && IR_Start_Frame_Init == TRUE)
+    static unsigned int i=0;
+
+    if(IR_Startup_Sequence_4_5ms == FALSE && IR_Startup_Sequence_9ms == TRUE && IR_Start_Frame_Init == TRUE)
     {
-        current_tick_count = OSTimeGet();
-        // if((current_tick_count - previous_tick_count) >=14)
-        // {
-        //     IR_Startup_Sequence = TRUE;
-        // }
-        // if((current_tick_count - previous_tick_count) <=8)
-        // {
+        while((PINE &(1<<IR_TSOP_SESOR)) == (1<<IR_TSOP_SESOR))
+        {
+            ir_no_interrupts++;
+        }
+        if((ir_no_interrupts > IR_TSOP_SENSOR_4_5ms_COUNT_LOWER && ir_no_interrupts < IR_TSOP_SENSOR_4_5ms_COUNT_UPPER))
+        {
+            IR_Startup_Sequence_4_5ms  = TRUE;
+            ir_no_interrupts = 0;
+        }
 
-        //     if ((PINE &(1<<IR_TSOP_SESOR)) == FALSE) 
-        //     {
-        //         ir_raw_data_0 = 25;
-        //     } 
-        // }
-        // if((current_tick_count - previous_tick_count) > 9)
-        // {
+    }
+}
+/*
+*********************************************************************************************************
+*                                                   IR_Retrive_StartFrame
+* Description : This function capture the 9ms LOW pulse.
+*               
+* Arguments   : none
+*********************************************************************************************************
+*/
 
-        //     if ((PINE &(1<<IR_TSOP_SESOR)) == TRUE) 
-        //     {
-        //         ir_raw_data_0 = 26;
-        //         breakpoint();
-        //     } 
-        // }
+static void IR_Retrive_StartFrame_9ms(void)
+{
+    if(IR_Startup_Sequence_9ms == FALSE && IR_Start_Frame_Init == TRUE)
+    {
+        while((PINE &(1<<IR_TSOP_SESOR)) != (1<<IR_TSOP_SESOR))
+        {
+            ir_no_interrupts++;
+
+        }
+        if((ir_no_interrupts > IR_TSOP_SENSOR_9ms_COUNT_LOWER && ir_no_interrupts < IR_TSOP_SENSOR_9ms_COUNT_UPPER))
+        {
+            IR_Startup_Sequence_9ms  = TRUE;
+            ir_no_interrupts = 0;
+        }
 
     }
 
@@ -219,10 +386,8 @@ static void IR_ISR_Init(void)
 {
     if(IR_Start_Frame_Init == FALSE)
     {
-        previous_tick_count = OSTimeGet();
         IR_Start_Frame_Init = TRUE;
     }
-    // breakpoint();
 
 }
 /*
@@ -235,7 +400,7 @@ static void IR_ISR_Init(void)
 * Arguments   : none
 *********************************************************************************************************
 */
-void  IR_Sensor_ISR_Enable (void)
+void  IR_Sensor_ISR_Config (void)
 { 
     PORTE = 0x00;
     DDRE = 0x00;
@@ -253,16 +418,43 @@ void  IR_Sensor_ISR_Enable (void)
 */
 ISR(INT5_vect)
 {
-    if ((PINE &(1<<IR_TSOP_SESOR)) == TRUE) 
-    {
-        ir_raw_data_0 = 26;
-        breakpoint();
-    }
-    // IR_ISR_Init();
-    // IR_Retrive_StartFrame();
-    // IR_Retrive_AddressData();
-    // IR_Retrive_CommandData();
-    // IR_Retrive_RepeatCode();
+    IR_Sensor_ISR_Disable();
+    IR_ISR_Init();
+    IR_Retrive_StartFrame_9ms();
+    IR_Retrive_StartFrame_4_5ms();
+    IR_Retrive_AddressData();
+    IR_Retrive_AddressData_Inverse();
+    IR_Retrive_CommandData();
+    IR_Retrive_CommandData_Inverse();
+    IR_Retrive_RepeatCode();
+    IR_Sensor_ISR_Enable();
 
 }
 
+
+/*
+*********************************************************************************************************
+*                                                   IR_Sensor_ISR_Disable
+* Description : This function should be called by your application code before you make use of any of the
+*               functions found in this module.This function shall disable the ISR.
+*               
+* Arguments   : none
+*********************************************************************************************************
+*/
+void  IR_Sensor_ISR_Disable(void)
+{
+    EIMSK&= ~(1<<INT5); 
+}
+/*
+*********************************************************************************************************
+*                                                   IR_Sensor_ISR_Enable
+* Description : This function should be called by your application code before you make use of any of the
+*               functions found in this module.This function shall enable the ISR.
+*               
+* Arguments   : none
+*********************************************************************************************************
+*/
+void  IR_Sensor_ISR_Enable(void)
+{
+    EIMSK |= (1<<INT5); 
+}

@@ -31,7 +31,7 @@ static  void    LCD_Init(void);
 static  void    PB_Init(void);
 static  void    UART_Init(void);
 static  void    Fx_DC_Motor_Init(void);
-extern  void    IR_Sensor_ISR_Enable(void);
+extern  void    IR_Sensor_ISR_Config(void);
 
 
 /*
@@ -53,7 +53,7 @@ void  BSP_Init (void)
      PB_Init();
      UART_Init();
      BSP_TickInit();
-     IR_Sensor_ISR_Enable();
+     IR_Sensor_ISR_Config();
 }
 
 /*
