@@ -29,7 +29,7 @@ static  void    BSP_TickInit(void);
 extern  void    Fx_LED_Init(void);
 static  void    LCD_Init(void);
 static  void    PB_Init(void);
-static  void    UART_Init(void);
+extern void     UART_Init(void);
 static  void    Fx_DC_Motor_Init(void);
 extern  void    IR_Sensor_ISR_Config(void);
 
@@ -111,23 +111,6 @@ void  BSP_TickISR_Handler (void)
     OSTimeTick();                                           /* Call uC/OS-II's OSTimeTick()                          */
 }
 
-
-/*
-*********************************************************************************************************
-*
-* Description : This function is used to initialize the UART.
-*               
-* Arguments   : none
-*********************************************************************************************************
-*/
-
-static  void  UART_Init (void)
-{
-     UBRR0 = UBRR_VAL ;  
-     UCSR0B |= 1 << TXEN0;  
-     // Frame format: Asynchronous 8N1 
-     UCSR0C = ( 1 << UCSZ01 ) | ( 1 << UCSZ00 );       
-}
 /*
 * Description : This function should be called by your application code before you make use of any of the
 *               functions found in this module. This function shall initialize the LCD 1602 Module.

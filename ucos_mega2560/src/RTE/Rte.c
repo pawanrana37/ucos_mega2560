@@ -46,6 +46,8 @@ volatile unsigned char ir_received_data=0;
 
 extern int ir_raw_command_data_0;
 int *ir_raw_command_data_0_ptr = &ir_raw_command_data_0;
+INT8U err;
+
 /*
 *********************************************************************************************************
 *                                            FUNCTION PROTOTYPES
@@ -57,6 +59,8 @@ extern void OS_Resource_Init(void);
 extern void OS_Task_Create_Ext(void);
 extern void Fx_LED_Blink_MainFunction(void);
 extern void Fx_DC_Motor_MainFunction(void);
+extern int uart_putc ( unsigned char c );
+extern void uart_puts ( char * s );
 
 /*
 *********************************************************************************************************
@@ -248,20 +252,18 @@ static void TASK_RTE_IR(void *p_arg)
 
 static void TASK_RTE_UART(int *p_arg)
 {
-    INT8U err;
+    char buf[7];    
     while(1)
     {
         ir_received_data_ptr = OSMboxPend(msgbox, 0, &err);
         if(ir_received_data_ptr !=NULL)
         {
-            while(!(UCSR0A & (1<<UDRE0)));
-    
             ir_received_data = (*(unsigned char *)(ir_received_data_ptr));
-            UDR0 = ir_received_data;
-            breakpoint();
-            OSTimeDlyHMSM(0,0,1,0);
+            sprintf(buf, "%d",ir_received_data);
+            // itoa ( ir_received_data , buf , 10 ); // 10 for radix -> decimal system uart_puts ( s );     
+            // since itoa returns a pointer to the start of s also truncates: 
+            uart_puts (buf);  
         }
-
     }
 } 
 
