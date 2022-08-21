@@ -19,8 +19,6 @@
 */
 
 #define CPU_CLK_FREQ                16000000
-#define BAUD                        9600UL       // baud rate
-#define UBRR_VAL ((CPU_CLK_FREQ + BAUD * 8) / (BAUD * 16) -1)    // clever rounding 
 
 /*
 *********************************************************************************************************
