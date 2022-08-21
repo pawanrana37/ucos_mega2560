@@ -79,7 +79,7 @@
     /*calculate number of interrupts*/
     volatile unsigned  int ir_no_interrupts=0;
 
-extern OS_EVENT *msgbox; 
+    extern OS_EVENT *msgbox; 
 
 /*
 *********************************************************************************************************
@@ -103,6 +103,8 @@ void    IR_Sensor_ISR_Disable(void);
 void    IR_Sensor_TIMER_ISR_Disable(void);
 void    IR_Sensor_TIMER_ISR_Enable(void);
 
+extern OS_EVENT *msgbox; 
+
 
 /*
 *********************************************************************************************************
@@ -115,7 +117,6 @@ void    IR_Sensor_TIMER_ISR_Enable(void);
 static void IR_Retrive_RepeatCode(void)
 {
     ir_no_interrupts = 0;
-    breakpoint();
     IR_Command_Sequence_Data_Inverse = FALSE;
     IR_Command_Sequence_Data = FALSE;
     IR_Address_Sequence_Data_Inverse = FALSE;
@@ -123,6 +124,7 @@ static void IR_Retrive_RepeatCode(void)
     IR_Startup_Sequence_4_5ms = FALSE;
     IR_Startup_Sequence_9ms = FALSE;
     IR_Start_Frame_Init = FALSE;
+    OSMboxPost(msgbox,(int *)&ir_raw_command_data_0);
     ir_raw_command_data_1 = 0;
     ir_raw_command_data_0 = 0;
     ir_raw_address_data_0 = 0;
@@ -142,6 +144,10 @@ static void IR_Retrive_CommandData_Inverse(void)
     static unsigned int i=0;
     if(IR_Command_Sequence_Data_Inverse == FALSE && IR_Command_Sequence_Data == TRUE && IR_Address_Sequence_Data_Inverse == TRUE && IR_Address_Sequence_Data == TRUE && IR_Startup_Sequence_4_5ms == TRUE && IR_Startup_Sequence_9ms == TRUE && IR_Start_Frame_Init == TRUE)
     {
+        while((PINE &(1<<IR_TSOP_SESOR)) != (1<<IR_TSOP_SESOR))
+        {
+            /*DO Nothing Dummy Transition*/
+        }
 
         for(i=0;i<=7;i++)
         {
@@ -190,6 +196,10 @@ static void IR_Retrive_CommandData(void)
     static unsigned int i=0;
     if(IR_Command_Sequence_Data == FALSE && IR_Address_Sequence_Data_Inverse == TRUE && IR_Address_Sequence_Data == TRUE && IR_Startup_Sequence_4_5ms == TRUE && IR_Startup_Sequence_9ms == TRUE && IR_Start_Frame_Init == TRUE)
     {
+        while((PINE &(1<<IR_TSOP_SESOR)) != (1<<IR_TSOP_SESOR))
+        {
+            /*DO Nothing Dummy Transition*/
+        }
         for(i=0;i<=7;i++)
         {
             IR_Command_Sequence_Data = FALSE;
@@ -237,6 +247,10 @@ static void IR_Retrive_AddressData_Inverse(void)
     static unsigned int i=0;
     if(IR_Address_Sequence_Data_Inverse == FALSE && IR_Address_Sequence_Data == TRUE && IR_Startup_Sequence_4_5ms == TRUE && IR_Startup_Sequence_9ms == TRUE && IR_Start_Frame_Init == TRUE)
     {
+        while((PINE &(1<<IR_TSOP_SESOR)) != (1<<IR_TSOP_SESOR))
+        {
+            /*DO Nothing Dummy Transition*/
+        }
         for(i=0;i<=7;i++)
         {
             IR_Address_Sequence_Data_Inverse = FALSE;
