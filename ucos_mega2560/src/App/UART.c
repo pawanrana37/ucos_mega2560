@@ -57,9 +57,9 @@ void uart_puts ( char * s );
 void  UART_Init (void)
 {
      UBRR0 = UBRR_VAL ;  
-     UCSR0B |= 1 << TXEN0;  
+     UCSR0B = (1 << TXEN0);  
      // Frame format: Asynchronous 8N1 
-     UCSR0C = ( 1 << UCSZ01 ) | ( 1 << UCSZ00 );       
+     UCSR0C = ( 1 << UCSZ01 ) | ( 1 << UCSZ00 )|( 1 << USBS0);       
 }
 
 /*
@@ -74,10 +74,12 @@ void  UART_Init (void)
 
 int uart_putc ( unsigned char c )   
 {
-    // ir_raw_command_data_0_char[0] = c;
-    // breakpoint();
-    while(!(UCSR0A & (1<<UDRE0)));/* wait until sending possible */    
-    UDR0 = c ; /* send characters */                        
+    ir_raw_command_data_0_char[0] = c;
+    if(c!=0)
+    {
+        while(!(UCSR0A & (1<<UDRE0)));/* wait until sending possible */    
+        UDR0 = c ; /* send characters */                        
+    }
     return 0 ; 
 }
 /*
@@ -93,9 +95,10 @@ int uart_putc ( unsigned char c )
 
 void uart_puts ( char * s )   
 {
-    while ( * s ) 
+    while (*s != '\0' && *s != 0) 
     { /* as long as *s != '\0' so not equal to the "string end character (terminator)" */   
-        uart_putc ( * s );
+        uart_putc ( *s );
         s ++ ;
     }
+    uart_putc ( '\n');
 }

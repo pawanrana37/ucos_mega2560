@@ -30,23 +30,17 @@
 #define IR_TSOP_SESOR				PE5
 #define IR_TSOP_SENSOR_PIN_STATUS Dio_ReadChannel(AVR_PORTE,IR_TSOP_SESOR)
 
-#define IR_TSOP_SENSOR_9ms_COUNT_UPPER 9870u
-#define IR_TSOP_SENSOR_9ms_COUNT_LOWER 9780u
+#define IR_TSOP_SENSOR_9ms_COUNT 9000u
 
-#define IR_TSOP_SENSOR_4_5ms_COUNT_UPPER 4760u
-#define IR_TSOP_SENSOR_4_5ms_COUNT_LOWER 4700u
+#define IR_TSOP_SENSOR_4_5ms_COUNT 4500u
 
-#define IR_TSOP_SENSOR_562us_COUNT_UPPER 750u
-#define IR_TSOP_SENSOR_562us_COUNT_LOWER 700u
+#define IR_TSOP_SENSOR_562us_COUNT 562u
 
-#define IR_TSOP_SENSOR_2_25ms_COUNT_UPPER 2400u
-#define IR_TSOP_SENSOR_2_25ms_COUNT_LOWER 2300u
+#define IR_TSOP_SENSOR_2_25ms_COUNT 2250u
 
-#define IR_TSOP_SENSOR_1_12ms_COUNT_UPPER 1250u
-#define IR_TSOP_SENSOR_1_12ms_COUNT_LOWER 1200u
+#define IR_TSOP_SENSOR_1_12ms_COUNT 1120u
 
-#define IR_TSOP_SENSOR_3_37ms_COUNT_UPPER 2846u
-#define IR_TSOP_SENSOR_3_37ms_COUNT_LOWER 2546u
+#define IR_TSOP_SENSOR_3_37ms_COUNT 3370u
 /*
 *********************************************************************************************************
 *                                              GLOBAL VARIABLES
@@ -163,13 +157,13 @@ static void IR_Retrive_CommandData_Inverse(void)
                 ir_no_interrupts++;
 
             }
-            if((ir_no_interrupts > IR_TSOP_SENSOR_2_25ms_COUNT_LOWER && ir_no_interrupts < IR_TSOP_SENSOR_2_25ms_COUNT_UPPER))
+            if((ir_no_interrupts > IR_TSOP_SENSOR_2_25ms_COUNT))
             {
                 ir_raw_command_data_1 |= (1 << (7 - i)); //Set bit (7-b)
                 ir_no_interrupts = 0;
                 
             } 
-            else if ((ir_no_interrupts > IR_TSOP_SENSOR_1_12ms_COUNT_LOWER && ir_no_interrupts < IR_TSOP_SENSOR_1_12ms_COUNT_UPPER))
+            else if ((ir_no_interrupts > IR_TSOP_SENSOR_1_12ms_COUNT))
             {
                 ir_raw_command_data_1 &= ~(1 << (7 - i)); //Clear bit (7-b)
                 ir_no_interrupts = 0;
@@ -214,13 +208,13 @@ static void IR_Retrive_CommandData(void)
                 ir_no_interrupts++;
 
             }
-            if((ir_no_interrupts > IR_TSOP_SENSOR_2_25ms_COUNT_LOWER && ir_no_interrupts < IR_TSOP_SENSOR_2_25ms_COUNT_UPPER))
+            if((ir_no_interrupts > IR_TSOP_SENSOR_2_25ms_COUNT))
             {
                 ir_raw_command_data_0 |= (1 << (7 - i)); //Set bit (7-b)
                 ir_no_interrupts = 0;
                 
             } 
-            else if ((ir_no_interrupts > IR_TSOP_SENSOR_1_12ms_COUNT_LOWER && ir_no_interrupts < IR_TSOP_SENSOR_1_12ms_COUNT_UPPER))
+            else if ((ir_no_interrupts > IR_TSOP_SENSOR_1_12ms_COUNT))
             {
                 ir_raw_command_data_0 &= ~(1 << (7 - i)); //Clear bit (7-b)
                 ir_no_interrupts = 0;
@@ -265,13 +259,13 @@ static void IR_Retrive_AddressData_Inverse(void)
                 ir_no_interrupts++;
 
             }
-            if((ir_no_interrupts > IR_TSOP_SENSOR_2_25ms_COUNT_LOWER && ir_no_interrupts < IR_TSOP_SENSOR_2_25ms_COUNT_UPPER))
+            if((ir_no_interrupts > IR_TSOP_SENSOR_2_25ms_COUNT))
             {
                 ir_raw_address_data_1 |= (1 << (7 - i)); //Set bit (7-b)
                 ir_no_interrupts = 0;
                 
             } 
-            else if ((ir_no_interrupts > IR_TSOP_SENSOR_1_12ms_COUNT_LOWER && ir_no_interrupts < IR_TSOP_SENSOR_1_12ms_COUNT_UPPER))
+            else if ((ir_no_interrupts > IR_TSOP_SENSOR_1_12ms_COUNT) )
             {
                 ir_raw_address_data_1 &= ~(1 << (7 - i)); //Clear bit (7-b)
                 ir_no_interrupts = 0;
@@ -315,12 +309,12 @@ static void IR_Retrive_AddressData(void)
                 ir_no_interrupts++;
 
             }
-            if ((ir_no_interrupts > IR_TSOP_SENSOR_1_12ms_COUNT_LOWER && ir_no_interrupts < IR_TSOP_SENSOR_1_12ms_COUNT_UPPER))
+            if ((ir_no_interrupts > IR_TSOP_SENSOR_1_12ms_COUNT))
             {
                 ir_raw_address_data_0 &= ~(1 << (7 - i)); //Clear bit (7-b)
                 ir_no_interrupts = 0;
             }
-            else if((ir_no_interrupts > IR_TSOP_SENSOR_2_25ms_COUNT_LOWER && ir_no_interrupts < IR_TSOP_SENSOR_2_25ms_COUNT_UPPER))
+            else if((ir_no_interrupts > IR_TSOP_SENSOR_2_25ms_COUNT))
             {
                 ir_raw_address_data_0 |= (1 << (7 - i)); //Set bit (7-b)
                 ir_no_interrupts = 0;
@@ -353,7 +347,7 @@ static void IR_Retrive_StartFrame_4_5ms(void)
         {
             ir_no_interrupts++;
         }
-        if((ir_no_interrupts > IR_TSOP_SENSOR_4_5ms_COUNT_LOWER && ir_no_interrupts < IR_TSOP_SENSOR_4_5ms_COUNT_UPPER))
+        if((ir_no_interrupts > IR_TSOP_SENSOR_4_5ms_COUNT))
         {
             IR_Startup_Sequence_4_5ms  = TRUE;
             ir_no_interrupts = 0;
@@ -379,7 +373,7 @@ static void IR_Retrive_StartFrame_9ms(void)
             ir_no_interrupts++;
 
         }
-        if((ir_no_interrupts > IR_TSOP_SENSOR_9ms_COUNT_LOWER && ir_no_interrupts < IR_TSOP_SENSOR_9ms_COUNT_UPPER))
+        if((ir_no_interrupts > IR_TSOP_SENSOR_9ms_COUNT))
         {
             IR_Startup_Sequence_9ms  = TRUE;
             ir_no_interrupts = 0;
