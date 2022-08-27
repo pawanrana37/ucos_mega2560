@@ -153,8 +153,17 @@ static void TASK_RTE_LED(void *p_arg)
 {
     while (1)
     {
-        Fx_LED_Blink_MainFunction();
-        OSTimeDlyHMSM(0,0,0,100);
+        ir_received_data_ptr = OSMboxPend(msgbox, 0, &err);
+        if(ir_received_data_ptr !=NULL && (*(unsigned char *)(ir_received_data_ptr) != 0))
+        {
+            if((*(unsigned char *)(ir_received_data_ptr) == 24))
+            {
+                Fx_LED_Blink_MainFunction();
+            }
+
+        }
+
+        // OSTimeDlyHMSM(0,0,1,0);
 
     }   
 } 
@@ -255,14 +264,14 @@ static void TASK_RTE_UART(int *p_arg)
     char buf[7];    
     while(1)
     {
+ 
         ir_received_data_ptr = OSMboxPend(msgbox, 0, &err);
         if(ir_received_data_ptr !=NULL)
         {
             ir_received_data = (*(unsigned char *)(ir_received_data_ptr));
-            sprintf(buf, "%d",ir_received_data);
-            // itoa ( ir_received_data , buf , 10 ); // 10 for radix -> decimal system uart_puts ( s );     
-            // since itoa returns a pointer to the start of s also truncates: 
+            sprintf(buf, "0x%x",ir_received_data);
             uart_puts (buf);  
+            OSMboxPost(msgbox,(int *)&ir_received_data);
         }
     }
 } 
@@ -310,21 +319,21 @@ void TaskStartCreateTasks(void)
     //                 (void           *) 0,
     //                 (INT16U          )(OS_TASK_OPT_STK_CHK | OS_TASK_OPT_STK_CLR));
 
-    OSTaskCreateExt((void (*)(void *)) TASK_RTE_IR,
-                    (void           *) 0,
-                    (OS_STK         *)&TaskStk[1][APP_CFG_TASK_STK_SIZE - 1],
-                    (INT8U           ) 4,
-                    (INT16U          ) 4,
-                    (OS_STK         *)&TaskStk[1][0],
-                    (INT32U          ) APP_CFG_TASK_STK_SIZE,
-                    (void           *) 0,
-                    (INT16U          )(OS_TASK_OPT_STK_CHK | OS_TASK_OPT_STK_CLR));
+    // OSTaskCreateExt((void (*)(void *)) TASK_RTE_IR,
+    //                 (void           *) 0,
+    //                 (OS_STK         *)&TaskStk[1][APP_CFG_TASK_STK_SIZE - 1],
+    //                 (INT8U           ) 4,
+    //                 (INT16U          ) 4,
+    //                 (OS_STK         *)&TaskStk[1][0],
+    //                 (INT32U          ) APP_CFG_TASK_STK_SIZE,
+    //                 (void           *) 0,
+    //                 (INT16U          )(OS_TASK_OPT_STK_CHK | OS_TASK_OPT_STK_CLR));
 
     OSTaskCreateExt((void (*)(void *))TASK_RTE_UART,
                 (void           *) 0,
                 (OS_STK         *)&TaskStk[2][APP_CFG_TASK_STK_SIZE - 1],
-                (INT8U           ) 5,
-                (INT16U          ) 5,
+                (INT8U           ) 4,
+                (INT16U          ) 4,
                 (OS_STK         *)&TaskStk[2][0],
                 (INT32U          ) APP_CFG_TASK_STK_SIZE,
                 (void           *) 0,
