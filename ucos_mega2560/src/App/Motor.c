@@ -65,7 +65,7 @@ void  Fx_DC_Motor_Init (void)
 * Arguments   : none
 *********************************************************************************************************
 */
-void Fx_DC_Motor_MainFunction(unsigned char cmd)
+int Fx_DC_Motor_MainFunction(unsigned char cmd)
 {
 
         Dio_WriteChannel(AVR_PORTB,DC_MOTOR_IN1,HIGH);
@@ -75,6 +75,7 @@ void Fx_DC_Motor_MainFunction(unsigned char cmd)
         Dio_WriteChannel(AVR_PORTB,DC_MOTOR_IN2,HIGH);
         Dio_WriteChannel(AVR_PORTB,DC_MOTOR_IN1,LOW);
         OSTimeDlyHMSM(0,0,5,0);
+        return 0;
 
 
 }
