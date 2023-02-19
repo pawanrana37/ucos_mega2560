@@ -97,7 +97,7 @@ void    IR_Sensor_ISR_Disable(void);
 void    IR_Sensor_TIMER_ISR_Disable(void);
 void    IR_Sensor_TIMER_ISR_Enable(void);
 
-extern OS_EVENT *msgbox; 
+extern OS_EVENT *msgbox_ir; 
 
 
 /*
@@ -118,7 +118,7 @@ static void IR_Retrive_RepeatCode(void)
     IR_Startup_Sequence_4_5ms = FALSE;
     IR_Startup_Sequence_9ms = FALSE;
     IR_Start_Frame_Init = FALSE;
-    OSMboxPost(msgbox,(int *)&ir_raw_command_data_0);
+    OSMboxPost(msgbox_ir,(int *)&ir_raw_command_data_0);
     ir_raw_command_data_1 = 0;
     ir_raw_command_data_0 = 0;
     ir_raw_address_data_0 = 0;

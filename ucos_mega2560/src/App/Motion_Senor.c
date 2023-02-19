@@ -95,7 +95,6 @@ static void Motion_Sensor_Retrive_StartFrame(void)
         if((ms_no_interrupts > 0))
         {
             Motion_Sensor_Startup_Sequence_1_28sec  = TRUE;
-            breakpoint();
             ms_no_interrupts = 0;
         }
 
