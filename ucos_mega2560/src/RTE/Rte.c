@@ -37,15 +37,28 @@
 
 static OS_STK TaskStartStk[APP_CFG_TASK_START_STK_SIZE];
 static OS_STK TaskStk[APP_CFG_N_TASKS][APP_CFG_TASK_STK_SIZE];
-OS_EVENT *msgbox; 
-OS_EVENT *msgbox1; 
-OS_EVENT *msgbox2;
+
+OS_EVENT *msgbox_ir; 
+OS_EVENT *msgbox_temperature; 
+OS_EVENT *msgbox_humidity;
 
 volatile unsigned char *ir_received_data_ptr=NULL;
 volatile unsigned char ir_received_data=0;
 
+volatile unsigned char *temperature_received_data_ptr=NULL;
+volatile unsigned char temperature_received_data=0;
+
+volatile unsigned char *humidity_received_data_ptr=NULL;
+volatile unsigned char humidity_received_data=0;
+
 extern int ir_raw_command_data_0;
 int *ir_raw_command_data_0_ptr = &ir_raw_command_data_0;
+
+extern int temperature;
+int *temperature_raw_command_data_0_ptr = &temperature;
+
+extern int humidity;
+int *humidity_raw_command_data_0_ptr = &humidity;
 INT8U err;
 
 /*
@@ -58,6 +71,10 @@ static void TaskStartCreateTasks(void);
 extern void OS_Resource_Init(void);
 extern void OS_Task_Create_Ext(void);
 extern void Fx_LED_Blink_MainFunction(void);
+extern void fx_LCD_temperature_Data(unsigned char);
+extern void fx_LCD_humidity_Data(unsigned char);
+extern void LCD_String(char *str);
+extern void fx_DHT11_MainFunction(void);
 extern void Fx_DC_Motor_MainFunction(void);
 extern int uart_putc ( unsigned char c );
 extern void uart_puts ( char * s );
@@ -112,22 +129,22 @@ void OS_Resource_Init()
 {
 
     /*Message Box Initialization*/
-    msgbox = OSMboxCreate(ir_raw_command_data_0_ptr);
-    if(msgbox == ((void *)0))
+    msgbox_ir = OSMboxCreate(ir_raw_command_data_0_ptr);
+    if(msgbox_ir == ((void *)0))
     {
         /* Failed to create message box */
         /* Return error to caller? */
     } 
 
-    msgbox1 = OSMboxCreate((void *)0);
-    if(msgbox1 == ((void *)0))
+    msgbox_temperature = OSMboxCreate(temperature_raw_command_data_0_ptr);
+    if(msgbox_temperature == ((void *)0))
     {
         /* Failed to create message box */
         /* Return error to caller? */
     } 
 
-    msgbox2 = OSMboxCreate((void *)0);
-    if(msgbox2 == ((void *)0))
+    msgbox_humidity = OSMboxCreate(humidity_raw_command_data_0_ptr);
+    if(msgbox_humidity == ((void *)0))
     {
         /* Failed to create message box */
         /* Return error to caller? */
@@ -153,19 +170,19 @@ static void TASK_RTE_LED(void *p_arg)
 {
     while (1)
     {
-        ir_received_data_ptr = OSMboxPend(msgbox, 0, &err);
-        if(ir_received_data_ptr !=NULL && (*(unsigned char *)(ir_received_data_ptr) != 0))
-        {
-            if((*(unsigned char *)(ir_received_data_ptr) == 24))
-            {
-                Fx_LED_Blink_MainFunction();
-            }
+        // ir_received_data_ptr = OSMboxPend(msgbox, 0, &err);
+        // if(ir_received_data_ptr !=NULL && (*(unsigned char *)(ir_received_data_ptr) != 0))
+        // {
+        //     if((*(unsigned char *)(ir_received_data_ptr) == 24))
+        //     {
+                //Fx_LED_Blink_MainFunction();
+                OSTimeDlyHMSM(0,0,1,0);
+            // }
 
-        }
+    }
+    
 
-        // OSTimeDlyHMSM(0,0,1,0);
-
-    }   
+    //}   
 } 
 /*
 *********************************************************************************************************
@@ -177,40 +194,53 @@ static void TASK_RTE_LED(void *p_arg)
 *********************************************************************************************************
 */
 
-// static void TASK_RTE_LCD(void *p_arg)
-// {
+static void TASK_RTE_LCD(void *p_arg)
+{
+    while(1)
+    {
+        temperature_received_data_ptr = OSMboxPend(msgbox_temperature, 0, &err);
 
-//     unsigned char i,a[]={"Anuyukti Kumari"};
-//     Lcd_CmdWrite(0x02);        // Initialize Lcd in 4-bit mode
-//     Lcd_CmdWrite(0x28);        // enable 5x7 mode for chars 
-//     Lcd_CmdWrite(0x01);        // Clear Display
-//     Lcd_CmdWrite(0x0C);        // Display ON, Cursor OFF
-//     Lcd_CmdWrite(0x06);          /*increment cursor (shift cursor to right)*/	
-//     Lcd_CmdWrite(0x80);        // Move the cursor to beginning of first line    */  
-//     // Task body (always written as an infinite loop) 
-//     while(1)
-//     {
+        if(temperature_received_data_ptr != NULL && (*(unsigned char *)(temperature_received_data_ptr) >= 0))
+        {
+            temperature_received_data = *(unsigned char *)(temperature_received_data_ptr);
 
-//         Lcd_DataWrite('H');
-//         Lcd_DataWrite('e');
-//         Lcd_DataWrite('l');
-//         Lcd_DataWrite('l');
-//         Lcd_DataWrite('o');
-//         Lcd_DataWrite(' ');
-//         // Lcd_DataWrite('w');
-//         // Lcd_DataWrite('o');
-//         // Lcd_DataWrite('r');
-//         // Lcd_DataWrite('l');
-//         // Lcd_DataWrite('d');
+            fx_LCD_temperature_Data(temperature_received_data);
+            //fx_LCD_temperature_Data(19);
+        }
 
-//         Lcd_CmdWrite(0xc0);        //Go to Next line and display Good Morning
-//         for(i=0;a[i]!=0;i++)
-//         {
-//             Lcd_DataWrite(a[i]);
-//         }
-//     }  
-        
-// } // Task3()
+        humidity_received_data_ptr = OSMboxPend(msgbox_humidity, 0, &err);
+        if(humidity_received_data_ptr != NULL && (*(unsigned char *)(humidity_received_data_ptr)>= 0))
+        {
+            humidity_received_data = *(unsigned char *)(humidity_received_data_ptr);
+            fx_LCD_humidity_Data(humidity_received_data);
+            //fx_LCD_humidity_Data(63);
+        }
+        OSTimeDlyHMSM(0,0,3,0); 
+    }  
+    
+}
+
+/*
+*********************************************************************************************************
+*                                               TASK_RTE_DHT11
+*
+* Description : This Task will invoke the Runnables for Temperature and Humidity Sensor DHT11
+*               
+* Arguments   : none
+*********************************************************************************************************
+*/
+static void TASK_RTE_DHT11(void *p_arg)
+{
+
+    while(1)
+    {
+
+        fx_DHT11_MainFunction();
+        OSTimeDlyHMSM(0,0,3,0);
+
+    }   
+   
+}
 /*
 *********************************************************************************************************
 *                                               TASK_RTE_DC_MOTOR
@@ -244,7 +274,7 @@ static void TASK_RTE_IR(void *p_arg)
 {
     while(1)
     {
-        OSTimeDlyHMSM(0,0,0,1);
+        OSTimeDlyHMSM(0,0,1,0);
     }
 
 } 
@@ -265,13 +295,13 @@ static void TASK_RTE_UART(int *p_arg)
     while(1)
     {
  
-        ir_received_data_ptr = OSMboxPend(msgbox, 0, &err);
+        ir_received_data_ptr = OSMboxPend(msgbox_ir, 0, &err);
         if(ir_received_data_ptr !=NULL)
         {
             ir_received_data = (*(unsigned char *)(ir_received_data_ptr));
             sprintf(buf, "0x%x",ir_received_data);
             uart_puts (buf);  
-            OSMboxPost(msgbox,(int *)&ir_received_data);
+            OSMboxPost(msgbox_ir,(int *)&ir_received_data);
         }
     }
 } 
@@ -291,23 +321,33 @@ void TaskStartCreateTasks(void)
     OSTaskCreateExt((void (*)(void *)) TASK_RTE_LED,
                     (void           *) 0,
                     (OS_STK         *)&TaskStk[0][APP_CFG_TASK_STK_SIZE - 1],
-                    (INT8U           ) 3,
-                    (INT16U          ) 3,
+                    (INT8U           ) 5,
+                    (INT16U          ) 5,
                     (OS_STK         *)&TaskStk[0][0],
                     (INT32U          ) APP_CFG_TASK_STK_SIZE,
                     (void           *) 0,
                     (INT16U          )(OS_TASK_OPT_STK_CHK | OS_TASK_OPT_STK_CLR));
 
 
-    // OSTaskCreateExt((void (*)(void *)) TASK_RTE_LCD,
-    //                 (void           *) 0,
-    //                 (OS_STK         *)&TaskStk[1][APP_CFG_TASK_STK_SIZE - 1],
-    //                 (INT8U           ) 4,
-    //                 (INT16U          ) 4,
-    //                 (OS_STK         *)&TaskStk[1][0],
-    //                 (INT32U          ) APP_CFG_TASK_STK_SIZE,
-    //                 (void           *) 0,
-    //                 (INT16U          )(OS_TASK_OPT_STK_CHK | OS_TASK_OPT_STK_CLR));
+    OSTaskCreateExt((void (*)(void *)) TASK_RTE_LCD,
+                    (void           *) 0,
+                    (OS_STK         *)&TaskStk[1][APP_CFG_TASK_STK_SIZE - 1],
+                    (INT8U           ) 4,
+                    (INT16U          ) 4,
+                    (OS_STK         *)&TaskStk[1][0],
+                    (INT32U          ) APP_CFG_TASK_STK_SIZE,
+                    (void           *) 0,
+                    (INT16U          )(OS_TASK_OPT_STK_CHK | OS_TASK_OPT_STK_CLR));
+
+    OSTaskCreateExt((void (*)(void *)) TASK_RTE_DHT11,
+                    (void           *) 0,
+                    (OS_STK         *)&TaskStk[2][APP_CFG_TASK_STK_SIZE - 1],
+                    (INT8U           ) 3,
+                    (INT16U          ) 3,
+                    (OS_STK         *)&TaskStk[2][0],
+                    (INT32U          ) APP_CFG_TASK_STK_SIZE,
+                    (void           *) 0,
+                    (INT16U          )(OS_TASK_OPT_STK_CHK | OS_TASK_OPT_STK_CLR));
 
     // OSTaskCreateExt((void (*)(void *)) TASK_RTE_DC_MOTOR,
     //                 (void           *) 0,
@@ -329,13 +369,13 @@ void TaskStartCreateTasks(void)
     //                 (void           *) 0,
     //                 (INT16U          )(OS_TASK_OPT_STK_CHK | OS_TASK_OPT_STK_CLR));
 
-    OSTaskCreateExt((void (*)(void *))TASK_RTE_UART,
-                (void           *) 0,
-                (OS_STK         *)&TaskStk[2][APP_CFG_TASK_STK_SIZE - 1],
-                (INT8U           ) 4,
-                (INT16U          ) 4,
-                (OS_STK         *)&TaskStk[2][0],
-                (INT32U          ) APP_CFG_TASK_STK_SIZE,
-                (void           *) 0,
-                (INT16U          )(OS_TASK_OPT_STK_CHK | OS_TASK_OPT_STK_CLR));
+    // OSTaskCreateExt((void (*)(void *))TASK_RTE_UART,
+    //             (void           *) 0,
+    //             (OS_STK         *)&TaskStk[2][APP_CFG_TASK_STK_SIZE - 1],
+    //             (INT8U           ) 4,
+    //             (INT16U          ) 4,
+    //             (OS_STK         *)&TaskStk[2][0],
+    //             (INT32U          ) APP_CFG_TASK_STK_SIZE,
+    //             (void           *) 0,
+    //             (INT16U          )(OS_TASK_OPT_STK_CHK | OS_TASK_OPT_STK_CLR));
 } 

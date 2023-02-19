@@ -24,10 +24,10 @@
 *                                               PROTOTYPES
 *********************************************************************************************************
 */
-
+extern  void    DHT11_Init(void);
 static  void    BSP_TickInit(void);
 extern  void    Fx_LED_Init(void);
-static  void    LCD_Init(void);
+extern  void    LCD_Init(void);
 static  void    PB_Init(void);
 extern void     UART_Init(void);
 static  void    Fx_DC_Motor_Init(void);
@@ -48,6 +48,7 @@ extern  void    Motion_Sensor_ISR_Config(void);
 
 void  BSP_Init (void)
 {
+     DHT11_Init();
      Fx_LED_Init();
      Fx_DC_Motor_Init();
      LCD_Init();
@@ -111,21 +112,6 @@ ISR(TIMER0_COMPA_vect)
 void  BSP_TickISR_Handler (void)
 {
     OSTimeTick();                                           /* Call uC/OS-II's OSTimeTick()                          */
-}
-
-/*
-* Description : This function should be called by your application code before you make use of any of the
-*               functions found in this module. This function shall initialize the LCD 1602 Module.
-*               
-* Arguments   : none
-*********************************************************************************************************
-*/
-static  void  LCD_Init (void)
-{
-    DDRF  |= (1<<PF4)|(1<<PF5)|(1<<PF6)|(1<<PF7);                                 /* All PORTD pins are outputs   */
-    DDRH  |= (1<<PH0)|(1<<PH1);                      
-  
-
 }
 
 /*

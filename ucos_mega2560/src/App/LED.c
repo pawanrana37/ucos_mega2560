@@ -28,8 +28,8 @@
 *                                               DEFINES
 *********************************************************************************************************
 */
-#define LED_PIN0					PJ0
-#define LED_PIN1					PJ1
+
+//#define LED_STATUS_GREEN			PE5
 /*
 *********************************************************************************************************
 *                                              GLOBAL VARIABLES
@@ -57,7 +57,9 @@ void Fx_LED_Init(void);
 
 void  Fx_LED_Init (void)
 {
-     DDRJ  = 0xFF;  
+     //DDRJ  = 0xFF;  
+     //DDRE  = 0xFF;
+     //DDRG  = 0xFF;
 }
 
 /*
@@ -72,7 +74,10 @@ void  Fx_LED_Init (void)
 
 void  Fx_LED_Blink_MainFunction (void)
 {
-    Dio_FlipChannel(AVR_PORTJ,LED_PIN1);
-    Dio_WriteChannel(AVR_PORTJ,LED_PIN0,LOW);
+    //breakpoint();
+    //Dio_FlipChannel(AVR_PORTE,LED_STATUS_GREEN);
+   // Dio_FlipChannel(AVR_PORTE,LED_STATUS_RED);
+    //Dio_WriteChannel(AVR_PORTE,LED_STATUS_GREEN,HIGH);
+    //toggleBit( PORTE, LED_STATUS_GREEN);
    
 }

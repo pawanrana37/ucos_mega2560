@@ -6,6 +6,10 @@
         "includes.h": "c",
         "bsp.h": "c",
         "ucos_ii.h": "c",
-        "app_cfg.h": "c"
+        "app_cfg.h": "c",
+        "avr8-stub.h": "c",
+        "arduino.h": "c",
+        "dio_cfg.h": "c",
+        "dht.h": "c"
     }
 }
