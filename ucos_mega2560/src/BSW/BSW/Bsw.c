@@ -1,70 +1,62 @@
 /*
 *********************************************************************************************************
 *                                           Atmel ATmega256
-*                                               main
+*                                         Board Support Package
 *
 *                                (c) Copyright 2005, Micrium, Weston, FL
 *                                          All Rights Reserved
 *
 *
-* File : main.c
+* File : Bsw.C
 * By   : Pawan Singh Rana
 *********************************************************************************************************
 */
-
 /*
 *********************************************************************************************************
 *                                               INCLUDES
 *********************************************************************************************************
 */
 
-#include "includes.h"
-#include <avr_debugger.h>
-#include "avr8-stub.h"
+#include "Bsw.h"
 
 /*
 *********************************************************************************************************
-*                                              GLOBAL VARIABLES
+*                                               PROTOTYPES
 *********************************************************************************************************
 */
-extern OS_STK TaskStartStk[APP_CFG_TASK_START_STK_SIZE];
-extern OS_STK TaskStk[APP_CFG_N_TASKS][APP_CFG_TASK_STK_SIZE];
 
 /*
 *********************************************************************************************************
-*                                            FUNCTION PROTOTYPES
+*                                         Bsw INITIALIZATION
+*
+* Description : This function should be called by your application code for the Basic Software Initialization.
+*               
+* Arguments   : none
 *********************************************************************************************************
 */
-extern void TaskStart(void *p_arg);
-void OS_Resource_Init(void);
-void OS_Task_Create_Ext(void);
 
-/*
-*********************************************************************************************************
-*                                                   MAIN
-*********************************************************************************************************
-*/
-int main(void)
+void  Bsw_Init (void)
 {
+     EcuM_Init();
 
-    /*Initialize AVR*/
-    Bsw_Init();
-
-
-    /*debugger Init*/
-    //debug_init();
-
-    /*Initialize uC/OS-II*/
-    OSInit();
-
-    /*Initialize OS Resources*/
-    OS_Resource_Init();
-
-    /*Create the start task*/
-    OS_Task_Create_Ext();
-
-    /*Start multi-tasking*/
-    OSStart();
-
-    return 0;
 }
+
+/*
+*********************************************************************************************************
+*                                         TIMER #0 IRQ HANDLER
+*
+* Description : This function handles the timer interrupt that is used to generate TICKs for uC/OS-II.
+*
+* Arguments   : none
+*
+* Note(s)     : 1) There is no need to clear the interrupt since this is done automatically in Output
+*                  Compare mode when the ISR is executed.
+*********************************************************************************************************
+*/
+
+void  Bsw_TickISR_Handler (void)
+{
+    OSTimeTick();                                           /* Call uC/OS-II's OSTimeTick()                          */
+}
+
+

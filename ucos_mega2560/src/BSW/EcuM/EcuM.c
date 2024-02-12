@@ -1,70 +1,48 @@
 /*
 *********************************************************************************************************
 *                                           Atmel ATmega256
-*                                               main
+*                                         Board Support Package
 *
 *                                (c) Copyright 2005, Micrium, Weston, FL
 *                                          All Rights Reserved
 *
 *
-* File : main.c
+* File : EcuM.C
 * By   : Pawan Singh Rana
 *********************************************************************************************************
 */
-
 /*
 *********************************************************************************************************
 *                                               INCLUDES
 *********************************************************************************************************
 */
 
-#include "includes.h"
-#include <avr_debugger.h>
-#include "avr8-stub.h"
+#include "EcuM.h"
+#include "BswM.h"
+#include "Mcal.h"
 
 /*
 *********************************************************************************************************
-*                                              GLOBAL VARIABLES
+*                                               PROTOTYPES
 *********************************************************************************************************
 */
-extern OS_STK TaskStartStk[APP_CFG_TASK_START_STK_SIZE];
-extern OS_STK TaskStk[APP_CFG_N_TASKS][APP_CFG_TASK_STK_SIZE];
+
+
 
 /*
 *********************************************************************************************************
-*                                            FUNCTION PROTOTYPES
+*                                         EcuM INITIALIZATION
+*
+* Description : This function shall be called by your application code to Initialize the Ecu Mode Manager
+*               
+* Arguments   : none
 *********************************************************************************************************
 */
-extern void TaskStart(void *p_arg);
-void OS_Resource_Init(void);
-void OS_Task_Create_Ext(void);
 
-/*
-*********************************************************************************************************
-*                                                   MAIN
-*********************************************************************************************************
-*/
-int main(void)
+void  EcuM_Init (void)
 {
+     BswM_Init();  
 
-    /*Initialize AVR*/
-    Bsw_Init();
-
-
-    /*debugger Init*/
-    //debug_init();
-
-    /*Initialize uC/OS-II*/
-    OSInit();
-
-    /*Initialize OS Resources*/
-    OS_Resource_Init();
-
-    /*Create the start task*/
-    OS_Task_Create_Ext();
-
-    /*Start multi-tasking*/
-    OSStart();
-
-    return 0;
+     Mcal_Init();
 }
+

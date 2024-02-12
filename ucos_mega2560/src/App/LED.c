@@ -29,7 +29,7 @@
 *********************************************************************************************************
 */
 
-//#define LED_STATUS_GREEN			PE5
+#define LED_STATUS_RED			PK4
 /*
 *********************************************************************************************************
 *                                              GLOBAL VARIABLES
@@ -57,7 +57,7 @@ void Fx_LED_Init(void);
 
 void  Fx_LED_Init (void)
 {
-     //DDRJ  = 0xFF;  
+       DDRK  = 0xFF;  
      //DDRE  = 0xFF;
      //DDRG  = 0xFF;
 }
@@ -76,7 +76,7 @@ void  Fx_LED_Blink_MainFunction (void)
 {
     //breakpoint();
     //Dio_FlipChannel(AVR_PORTE,LED_STATUS_GREEN);
-   // Dio_FlipChannel(AVR_PORTE,LED_STATUS_RED);
+    Dio_FlipChannel(AVR_PORTK,LED_STATUS_RED);
     //Dio_WriteChannel(AVR_PORTE,LED_STATUS_GREEN,HIGH);
     //toggleBit( PORTE, LED_STATUS_GREEN);
    

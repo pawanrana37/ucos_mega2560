@@ -175,14 +175,14 @@ static void TASK_RTE_LED(void *p_arg)
         // {
         //     if((*(unsigned char *)(ir_received_data_ptr) == 24))
         //     {
-                //Fx_LED_Blink_MainFunction();
+        //         Fx_LED_Blink_MainFunction();
                 OSTimeDlyHMSM(0,0,1,0);
-            // }
+            //}
 
     }
     
 
-    //}   
+   // }   
 } 
 /*
 *********************************************************************************************************
@@ -291,17 +291,17 @@ static void TASK_RTE_IR(void *p_arg)
 
 static void TASK_RTE_UART(int *p_arg)
 {
-    char buf[7];    
+    char buf[7];   
     while(1)
     {
  
         ir_received_data_ptr = OSMboxPend(msgbox_ir, 0, &err);
         if(ir_received_data_ptr !=NULL)
         {
+            
             ir_received_data = (*(unsigned char *)(ir_received_data_ptr));
             sprintf(buf, "0x%x",ir_received_data);
-            uart_puts (buf);  
-            OSMboxPost(msgbox_ir,(int *)&ir_received_data);
+            uart_puts (buf);
         }
     }
 } 
@@ -318,36 +318,36 @@ static void TASK_RTE_UART(int *p_arg)
 
 void TaskStartCreateTasks(void)
 {
-    OSTaskCreateExt((void (*)(void *)) TASK_RTE_LED,
-                    (void           *) 0,
-                    (OS_STK         *)&TaskStk[0][APP_CFG_TASK_STK_SIZE - 1],
-                    (INT8U           ) 5,
-                    (INT16U          ) 5,
-                    (OS_STK         *)&TaskStk[0][0],
-                    (INT32U          ) APP_CFG_TASK_STK_SIZE,
-                    (void           *) 0,
-                    (INT16U          )(OS_TASK_OPT_STK_CHK | OS_TASK_OPT_STK_CLR));
+    // OSTaskCreateExt((void (*)(void *)) TASK_RTE_LED,
+    //                 (void           *) 0,
+    //                 (OS_STK         *)&TaskStk[0][APP_CFG_TASK_STK_SIZE - 1],
+    //                 (INT8U           ) 5,
+    //                 (INT16U          ) 5,
+    //                 (OS_STK         *)&TaskStk[0][0],
+    //                 (INT32U          ) APP_CFG_TASK_STK_SIZE,
+    //                 (void           *) 0,
+    //                 (INT16U          )(OS_TASK_OPT_STK_CHK | OS_TASK_OPT_STK_CLR));
 
 
-    OSTaskCreateExt((void (*)(void *)) TASK_RTE_LCD,
-                    (void           *) 0,
-                    (OS_STK         *)&TaskStk[1][APP_CFG_TASK_STK_SIZE - 1],
-                    (INT8U           ) 4,
-                    (INT16U          ) 4,
-                    (OS_STK         *)&TaskStk[1][0],
-                    (INT32U          ) APP_CFG_TASK_STK_SIZE,
-                    (void           *) 0,
-                    (INT16U          )(OS_TASK_OPT_STK_CHK | OS_TASK_OPT_STK_CLR));
+    // OSTaskCreateExt((void (*)(void *)) TASK_RTE_LCD,
+    //                 (void           *) 0,
+    //                 (OS_STK         *)&TaskStk[1][APP_CFG_TASK_STK_SIZE - 1],
+    //                 (INT8U           ) 4,
+    //                 (INT16U          ) 4,
+    //                 (OS_STK         *)&TaskStk[1][0],
+    //                 (INT32U          ) APP_CFG_TASK_STK_SIZE,
+    //                 (void           *) 0,
+    //                 (INT16U          )(OS_TASK_OPT_STK_CHK | OS_TASK_OPT_STK_CLR));
 
-    OSTaskCreateExt((void (*)(void *)) TASK_RTE_DHT11,
-                    (void           *) 0,
-                    (OS_STK         *)&TaskStk[2][APP_CFG_TASK_STK_SIZE - 1],
-                    (INT8U           ) 3,
-                    (INT16U          ) 3,
-                    (OS_STK         *)&TaskStk[2][0],
-                    (INT32U          ) APP_CFG_TASK_STK_SIZE,
-                    (void           *) 0,
-                    (INT16U          )(OS_TASK_OPT_STK_CHK | OS_TASK_OPT_STK_CLR));
+    // OSTaskCreateExt((void (*)(void *)) TASK_RTE_DHT11,
+    //                 (void           *) 0,
+    //                 (OS_STK         *)&TaskStk[2][APP_CFG_TASK_STK_SIZE - 1],
+    //                 (INT8U           ) 3,
+    //                 (INT16U          ) 3,
+    //                 (OS_STK         *)&TaskStk[2][0],
+    //                 (INT32U          ) APP_CFG_TASK_STK_SIZE,
+    //                 (void           *) 0,
+    //                 (INT16U          )(OS_TASK_OPT_STK_CHK | OS_TASK_OPT_STK_CLR));
 
     // OSTaskCreateExt((void (*)(void *)) TASK_RTE_DC_MOTOR,
     //                 (void           *) 0,
@@ -359,23 +359,23 @@ void TaskStartCreateTasks(void)
     //                 (void           *) 0,
     //                 (INT16U          )(OS_TASK_OPT_STK_CHK | OS_TASK_OPT_STK_CLR));
 
-    // OSTaskCreateExt((void (*)(void *)) TASK_RTE_IR,
-    //                 (void           *) 0,
-    //                 (OS_STK         *)&TaskStk[1][APP_CFG_TASK_STK_SIZE - 1],
-    //                 (INT8U           ) 4,
-    //                 (INT16U          ) 4,
-    //                 (OS_STK         *)&TaskStk[1][0],
-    //                 (INT32U          ) APP_CFG_TASK_STK_SIZE,
-    //                 (void           *) 0,
-    //                 (INT16U          )(OS_TASK_OPT_STK_CHK | OS_TASK_OPT_STK_CLR));
+    OSTaskCreateExt((void (*)(void *)) TASK_RTE_IR,
+                    (void           *) 0,
+                    (OS_STK         *)&TaskStk[1][APP_CFG_TASK_STK_SIZE - 1],
+                    (INT8U           ) 4,
+                    (INT16U          ) 4,
+                    (OS_STK         *)&TaskStk[1][0],
+                    (INT32U          ) APP_CFG_TASK_STK_SIZE,
+                    (void           *) 0,
+                    (INT16U          )(OS_TASK_OPT_STK_CHK | OS_TASK_OPT_STK_CLR));
 
-    // OSTaskCreateExt((void (*)(void *))TASK_RTE_UART,
-    //             (void           *) 0,
-    //             (OS_STK         *)&TaskStk[2][APP_CFG_TASK_STK_SIZE - 1],
-    //             (INT8U           ) 4,
-    //             (INT16U          ) 4,
-    //             (OS_STK         *)&TaskStk[2][0],
-    //             (INT32U          ) APP_CFG_TASK_STK_SIZE,
-    //             (void           *) 0,
-    //             (INT16U          )(OS_TASK_OPT_STK_CHK | OS_TASK_OPT_STK_CLR));
+    OSTaskCreateExt((void (*)(void *))TASK_RTE_UART,
+                (void           *) 0,
+                (OS_STK         *)&TaskStk[2][APP_CFG_TASK_STK_SIZE - 1],
+                (INT8U           ) 3,
+                (INT16U          ) 3,
+                (OS_STK         *)&TaskStk[2][0],
+                (INT32U          ) APP_CFG_TASK_STK_SIZE,
+                (void           *) 0,
+                (INT16U          )(OS_TASK_OPT_STK_CHK | OS_TASK_OPT_STK_CLR));
 } 

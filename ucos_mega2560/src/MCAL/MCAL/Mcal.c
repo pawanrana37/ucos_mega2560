@@ -1,70 +1,56 @@
 /*
-*********************************************************************************************************
-*                                           Atmel ATmega256
-*                                               main
-*
-*                                (c) Copyright 2005, Micrium, Weston, FL
-*                                          All Rights Reserved
-*
-*
-* File : main.c
-* By   : Pawan Singh Rana
-*********************************************************************************************************
-*/
-
+ * https://github.com/pawanrana37/ucos_mega2560
+ *
+ * Copyright (c) [2024] [Pawan Singh Rana]
+ * All rights reserved.
+ *
+ * This software is licensed under the [License Name].
+ * See the LICENSE file in the project root for details.
+ *
+ * 
+ * File Mcal.c
+ */
+ 
 /*
 *********************************************************************************************************
 *                                               INCLUDES
 *********************************************************************************************************
 */
+#include "Mcal.h"
 
-#include "includes.h"
-#include <avr_debugger.h>
-#include "avr8-stub.h"
+/*
+*********************************************************************************************************
+*                                               DEFINES
+*********************************************************************************************************
+*/
 
 /*
 *********************************************************************************************************
 *                                              GLOBAL VARIABLES
 *********************************************************************************************************
 */
-extern OS_STK TaskStartStk[APP_CFG_TASK_START_STK_SIZE];
-extern OS_STK TaskStk[APP_CFG_N_TASKS][APP_CFG_TASK_STK_SIZE];
+
 
 /*
 *********************************************************************************************************
 *                                            FUNCTION PROTOTYPES
 *********************************************************************************************************
 */
-extern void TaskStart(void *p_arg);
-void OS_Resource_Init(void);
-void OS_Task_Create_Ext(void);
+
 
 /*
 *********************************************************************************************************
-*                                                   MAIN
+*                                       MCAL Driver INITIALIZATION
+*
+* Description : This function is called to initialize the Mcal Drivers.
+*
+* Arguments   : none
 *********************************************************************************************************
 */
-int main(void)
+void Mcal_Init(void)
 {
-
-    /*Initialize AVR*/
-    Bsw_Init();
-
-
-    /*debugger Init*/
-    //debug_init();
-
-    /*Initialize uC/OS-II*/
-    OSInit();
-
-    /*Initialize OS Resources*/
-    OS_Resource_Init();
-
-    /*Create the start task*/
-    OS_Task_Create_Ext();
-
-    /*Start multi-tasking*/
-    OSStart();
-
-    return 0;
+     Gpt_Init();
+     Dio_Init();
 }
+
+
