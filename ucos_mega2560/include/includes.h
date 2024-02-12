@@ -14,7 +14,8 @@
 // uC/OS-II header files
 #include "ucos_ii.h"
 #include "app_cfg.h"
-#include "bsp.h"
+#include "Mcal.h"
+#include "Bsw.h"
 // AVR device-specific IO definitions
 #include <avr/io.h>
 // Other AVR header files

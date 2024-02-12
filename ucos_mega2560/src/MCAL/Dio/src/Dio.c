@@ -1,16 +1,16 @@
 /*
-*********************************************************************************************************
-*                                           Atmel ATmega256
-*                                               MCAL:Dio
-*
-*                                (c) Copyright 2005, Micrium, Weston, FL
-*                                          All Rights Reserved
-*
-*
-* File : Dio.c
-* By   : Pawan Singh Rana
-*********************************************************************************************************
-*/
+ * https://github.com/pawanrana37/ucos_mega2560
+ *
+ * Copyright (c) [2024] [Pawan Singh Rana]
+ * All rights reserved.
+ *
+ * This software is licensed under the [License Name].
+ * See the LICENSE file in the project root for details.
+ *
+ * 
+ * File Dio.c
+ */
+ 
 
 /*
 *********************************************************************************************************
@@ -47,6 +47,18 @@ void Dio_WriteChannel(uint8_t port,uint8_t channel,uint8_t level);
 uint8_t Dio_ReadChannel(uint8_t port,uint8_t channel);
 void Dio_FlipChannel(uint8_t port,uint8_t channel);
 
+/*
+*********************************************************************************************************
+*                                                   Dio_Init 
+* Description : This function shall init the PORT to Output Port
+*               
+* Arguments   : none
+*********************************************************************************************************
+*/
+void Dio_Init(void)
+{
+    DDRK = 0xFF;
+}
 /*
 *********************************************************************************************************
 *                                                   Dio_WriteChannel 
